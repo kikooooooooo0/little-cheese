@@ -1,16 +1,12 @@
-//
-//  little_cheeseApp.swift
-//  little cheese
-//
-//  Created by jdjdind dhdjkd on 2025-11-16.
-//
+// MARK: - LittleCheeseApp 入口（通用：iOS + macOS）
 
 import SwiftUI
 
 @main
-struct little_cheeseApp: App {
+struct LittleCheeseApp: App {
     var body: some Scene {
         WindowGroup {
+            // 用你那个大号 ContentView（带 TabView、Today、目标、日记）
             ContentView()
         }
     }
