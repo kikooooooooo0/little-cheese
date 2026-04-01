@@ -26,6 +26,8 @@
 				CollectionsView.swift,
 				ContentView.swift,
 				DietSOPView.swift,
+				FitnessBlindBoxView.swift,
+				FitnessCoachView.swift,
 				GoalsView.swift,
 				InboxView.swift,
 				JournalListView.swift,

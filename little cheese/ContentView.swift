@@ -217,6 +217,28 @@ struct MoreView: View {
                                                 .foregroundColor(.lcYellow)
                                         }
                                     }
+                // ✨ 新增：多巴胺盲盒入口
+                                    NavigationLink(destination: FitnessBlindBoxView(state: state)) {
+                                        Label {
+                                            Text("多巴胺微动弹")
+                                                .font(.body)
+                                                .foregroundColor(.lcText)
+                                        } icon: {
+                                            Image(systemName: "gift.fill")
+                                                .foregroundColor(.lcAccentBlue)
+                                        }
+                                    }
+                // ✨ 新增：起司专属私教
+                                    NavigationLink(destination: FitnessCoachView(state: state)) {
+                                        Label {
+                                            Text("起司数字私教 (ACSM)")
+                                                .font(.body)
+                                                .foregroundColor(.lcText)
+                                        } icon: {
+                                            Image(systemName: "figure.run.square.stack")
+                                                .foregroundColor(.lcGreen)
+                                        }
+                                    }
                 // 第二组：精神食粮 (已连接)
                 Section {
                     NavigationLink(destination: CollectionsView(targetType: .book)) {
