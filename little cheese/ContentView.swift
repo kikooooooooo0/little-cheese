@@ -228,6 +228,17 @@ struct MoreView: View {
                                                 .foregroundColor(.lcAccentBlue)
                                         }
                                     }
+                // ✨ 新增：ACSM 身体雷达站 (宏观规划)
+                                    NavigationLink(destination: FitnessACSMView(state: state)) {
+                                        Label {
+                                            Text("ACSM 身体雷达站")
+                                                .font(.body)
+                                                .foregroundColor(.lcText)
+                                        } icon: {
+                                            Image(systemName: "waveform.path.ecg")
+                                                .foregroundColor(.lcGreen)
+                                        }
+                                    }
                 // ✨ 新增：起司专属私教
                                     NavigationLink(destination: FitnessCoachView(state: state)) {
                                         Label {
