@@ -422,18 +422,111 @@ struct FitnessCoachView: View {
                 baseReps: "\(minutes) 分钟"
             )
         } else {
-            return FitnessAction(
-                name: "去 \(selectedCardioName) 做间歇挑战",
-                targetMuscle: "心肺冲击 / 燃脂挑战",
-                tip: "快的时候认真快，慢的时候真的放慢。间歇的质量比一味硬扛更重要。",
-                emojiIcon: "⚡",
-                steps: [
-                    "前 5 分钟：轻松热身，逐渐提速",
-                    "接着做 6 轮：快 1 分钟 + 慢 2 分钟",
-                    "最后 \(max(5, minutes - 23)) 分钟：回到轻松稳态，慢慢收尾"
-                ],
-                baseReps: "\(minutes) 分钟"
-            )
+            switch selectedCardioName {
+            case "爬楼机":
+                return FitnessAction(
+                    name: "去爬楼机做爬坡耐力挑战",
+                    targetMuscle: "臀腿耐力 / 心肺冲击",
+                    tip: "爬楼机最怕前面太猛。抓扶手可以轻扶，但不要整个人挂在上面。",
+                    emojiIcon: "🧗‍♀️",
+                    steps: [
+                        "前 5 分钟：低速热身，找到节奏",
+                        "接着 4 轮：2 分钟中高强度 + 2 分钟恢复",
+                        "中高强度段：速度比热身明显更快，保持核心收紧、脚步稳定",
+                        "最后 \(max(5, minutes - 21)) 分钟：降回舒服速度，慢慢收尾"
+                    ],
+                    baseReps: "\(minutes) 分钟"
+                )
+                
+            case "椭圆机":
+                return FitnessAction(
+                    name: "去椭圆机做阻力间歇",
+                    targetMuscle: "心肺耐力 / 下肢持续输出",
+                    tip: "重点是稳定持续发力，不要只顾速度乱冲。阻力和节奏同时受控才有训练感。",
+                    emojiIcon: "🛸",
+                    steps: [
+                        "前 5 分钟：阻力 3 - 4，轻松热身",
+                        "接着 5 轮：2 分钟挑战段 + 2 分钟恢复段",
+                        "挑战段建议：坡度 8 - 10 / 阻力 5 - 6；恢复段建议：坡度 4 - 6 / 阻力 2 - 3",
+                        "最后 \(max(5, minutes - 25)) 分钟：回到低阻力，均匀呼吸慢慢结束"
+                    ],
+                    baseReps: "\(minutes) 分钟"
+                )
+                
+            case "跑步机":
+                return FitnessAction(
+                    name: "去跑步机做坡度间歇",
+                    targetMuscle: "心肺冲击 / 下肢耐力",
+                    tip: "快走坡度和慢跑都可以，选你能稳住动作的版本，不要追求狼狈。",
+                    emojiIcon: "🏃‍♀️",
+                    steps: [
+                        "前 5 分钟：平地慢走或慢跑热身",
+                        "接着 5 轮：1 分钟挑战 + 2 分钟恢复",
+                        "挑战段建议：坡度 6 - 10，速度提高到明显发热；恢复段：坡度降到 0 - 3，速度放慢",
+                        "最后 \(max(5, minutes - 20)) 分钟：轻松走收尾"
+                    ],
+                    baseReps: "\(minutes) 分钟"
+                )
+                
+            case "游泳":
+                return FitnessAction(
+                    name: "去游泳做分段耐力课",
+                    targetMuscle: "心肺耐力 / 全身协调",
+                    tip: "游泳不要全程一个死速度。分组游会更像训练，也更容易坚持。",
+                    emojiIcon: "🏊‍♀️",
+                    steps: [
+                        "前 5 分钟：轻松游，找呼吸节奏",
+                        "接着做 6 组：1 趟偏快 + 1 趟轻松恢复",
+                        "偏快段专注动作完整，不要乱扑腾；恢复段慢慢游，把呼吸找回来",
+                        "最后 \(max(5, minutes - 23)) 分钟：轻松连续游，当作放松"
+                    ],
+                    baseReps: "\(minutes) 分钟"
+                )
+                
+            case "动感单车":
+                return FitnessAction(
+                    name: "去动感单车做阻力冲刺",
+                    targetMuscle: "心肺冲击 / 大腿耐力",
+                    tip: "快的时候别只是腿乱转，阻力要够；慢的时候真的放松，不要硬撑。",
+                    emojiIcon: "🚴",
+                    steps: [
+                        "前 5 分钟：低阻力热身，腿慢慢转起来",
+                        "接着 6 轮：1 分钟高踏频或中高阻力 + 2 分钟轻松骑",
+                        "挑战段：阻力调到你能稳定输出但会喘的程度；恢复段把阻力明显降下来",
+                        "最后 \(max(5, minutes - 23)) 分钟：低阻力慢骑收尾"
+                    ],
+                    baseReps: "\(minutes) 分钟"
+                )
+                
+            case "散步":
+                return FitnessAction(
+                    name: "去做耐力快走",
+                    targetMuscle: "低压心肺 / 恢复燃脂",
+                    tip: "散步不适合硬写成冲刺课，更适合做长一点的耐力快走。",
+                    emojiIcon: "🚶",
+                    steps: [
+                        "前 5 分钟：轻松走，让身体热起来",
+                        "中间 \(max(20, minutes - 10)) 分钟：保持比平时散步更快一点的步频，手臂自然摆动",
+                        "如果在跑步机上，可以加入轻坡度：坡度 3 - 6，速度保持能持续说短句",
+                        "最后 5 分钟：逐渐放慢，当作主动恢复"
+                    ],
+                    baseReps: "\(minutes) 分钟"
+                )
+                
+            default:
+                return FitnessAction(
+                    name: "去 \(selectedCardioName) 做间歇挑战",
+                    targetMuscle: "心肺冲击 / 燃脂挑战",
+                    tip: "快的时候认真快，慢的时候真的放慢。间歇质量比一味硬扛更重要。",
+                    emojiIcon: "⚡",
+                    steps: [
+                        "前 5 分钟：轻松热身，逐渐提速",
+                        "接着做 6 轮：快 1 分钟 + 慢 2 分钟",
+                        "最后 \(max(5, minutes - 23)) 分钟：回到轻松稳态，慢慢收尾"
+                    ],
+                    baseReps: "\(minutes) 分钟"
+                )
+            }
         }
     }
     // 👑 终极强制平衡输出组合（✨ 重构：最强3D核心模块）
