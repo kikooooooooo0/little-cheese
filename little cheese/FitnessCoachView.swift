@@ -1,30 +1,38 @@
 import SwiftUI
 
-// MARK: - ✨ 专属动作数据模型 (升级了图解字段)
+// MARK: - ✨ 专属动作数据模型 (新增了间隙动作属性)
 struct FitnessAction: Identifiable, Hashable {
     let id = UUID()
-    let name: String
+    var name: String         // 动作名 (加 var 是为了动态拼上几组几次)
     let targetMuscle: String // 目标发力点
     let tip: String          // 注意事项
     let emojiIcon: String    // 视觉引导图标
     let steps: [String]      // 动作步骤分解
+    var activeRest: String? = nil // ✨ 间隙动作（超级组）
+}
+
+// ✨ 训练阶段模型：用来划分 Part 1, Part 2, Part 3
+struct WorkoutPhase: Identifiable {
+    let id = UUID()
+    let title: String
+    let subtitle: String
+    var actions: [FitnessAction]
 }
 
 struct FitnessCoachView: View {
     @ObservedObject var state: AppState
     @Environment(\.dismiss) var dismiss
     
-    @State private var strengthMinutes: Double = 20
-    @State private var cardioMinutes: Double = 20
+    @State private var strengthMinutes: Double = 30
+    @State private var cardioMinutes: Double = 0
     
     @State private var selectedEquip: Int = 0
     @State private var selectedPart: Int = 0
     @State private var selectedCardio: Int = 1
     
-    @State private var generatedRoutine: [FitnessAction] = []
+    // ✨ 现在的生成结果是一个“分阶段”的列表
+    @State private var generatedPhases: [WorkoutPhase] = []
     @State private var isGenerating: Bool = false
-    
-    // ✨ 新增：当前选中的动作，用于弹出详情弹窗
     @State private var selectedActionDetail: FitnessAction?
     
     let equips = ["🛋️ 宿舍徒手", "🎒 哑铃弹力带", "🏢 健身房"]
@@ -39,12 +47,12 @@ struct FitnessCoachView: View {
                 // 1. 顶部标题
                 VStack(spacing: 8) {
                     Text("今日运动点单台 🧀").font(.largeTitle.bold()).foregroundColor(.lcText)
-                    Text("总计 \(totalMinutes) 分钟，自由搭配你的多巴胺配方")
-                        .font(.subheadline).foregroundColor(.lcTextSecondary)
+                    Text("总计 \(totalMinutes) 分钟，自动为你编排热身、训练与放松")
+                        .font(.subheadline).foregroundColor(.lcTextSecondary).multilineTextAlignment(.center)
                 }
                 .padding(.top, 20)
                 
-                // 2. 时间分配拉杆
+                // 2. 时间拉杆
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -67,7 +75,7 @@ struct FitnessCoachView: View {
                 .padding(20).background(RoundedRectangle(cornerRadius: 24).fill(Color.lcCardBackground))
                 .shadow(color: .black.opacity(0.02), radius: 10, y: 5)
                 
-                // 3. 智能点单详情
+                // 3. 点单详情
                 if totalMinutes > 0 {
                     VStack(spacing: 24) {
                         if strengthMinutes > 0 {
@@ -106,7 +114,7 @@ struct FitnessCoachView: View {
                 } label: {
                     HStack {
                         Image(systemName: "wand.and.stars")
-                        Text(totalMinutes == 0 ? "请先拉动时间条 ⏱️" : (generatedRoutine.isEmpty ? "抽取今日训练处方" : "换一套动作试试"))
+                        Text(totalMinutes == 0 ? "请先拉动时间条 ⏱️" : (generatedPhases.isEmpty ? "生成三段式训练处方" : "重抽一套动作"))
                     }
                     .font(.headline).foregroundColor(.white).frame(maxWidth: .infinity).padding()
                     .background(totalMinutes == 0 ? Color.gray.opacity(0.5) : (isGenerating ? Color.lcSoftBlue : Color.lcAccentBlue))
@@ -114,26 +122,37 @@ struct FitnessCoachView: View {
                 }
                 .disabled(totalMinutes == 0)
                 
-                // 5. 生成结果展示区
-                if !generatedRoutine.isEmpty {
-                    VStack(alignment: .leading, spacing: 16) {
+                // 5. ✨ 三段式剧本展示区
+                if !generatedPhases.isEmpty {
+                    VStack(alignment: .leading, spacing: 24) {
                         HStack {
-                            Text("👇 你的专属动作指导：")
+                            Text("👇 你的三段式专属剧本：")
                                 .font(.headline).foregroundColor(.lcTextSecondary)
                             Spacer()
                             Text("点击卡片查看图解").font(.caption).foregroundColor(.lcAccentBlue)
                         }
                         
-                        VStack(spacing: 16) {
-                            ForEach(generatedRoutine) { action in
-                                // ✨ 让卡片变成可以点击的按钮
-                                Button {
-                                    selectedActionDetail = action
-                                } label: {
-                                    actionCard(for: action)
+                        ForEach(generatedPhases) { phase in
+                            VStack(alignment: .leading, spacing: 12) {
+                                // 阶段标题
+                                HStack {
+                                    Text(phase.title).font(.title3.bold()).foregroundColor(.lcText)
+                                    Spacer()
+                                    Text(phase.subtitle).font(.caption).foregroundColor(.lcTextSecondary)
                                 }
-                                .buttonStyle(.plain)
+                                .padding(.bottom, 4)
+                                
+                                // 阶段动作列表
+                                ForEach(phase.actions) { action in
+                                    Button {
+                                        selectedActionDetail = action
+                                    } label: {
+                                        actionCard(for: action)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
+                            .padding(.bottom, 12)
                         }
                         
                         // 完成打卡按钮
@@ -155,13 +174,12 @@ struct FitnessCoachView: View {
         }
         .background(Color.lcBackground.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-        // ✨ 绑定弹窗：只要 selectedActionDetail 有值，就会从底部滑出详情页
         .sheet(item: $selectedActionDetail) { action in
             ActionDetailSheet(action: action)
         }
     }
     
-    // MARK: - UI 子组件：起司动作卡片
+    // MARK: - UI 子组件：升级版起司动作卡片 (带间隙显示)
     private func actionCard(for action: FitnessAction) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
@@ -174,20 +192,31 @@ struct FitnessCoachView: View {
                     .foregroundColor(.lcSoftBlue.opacity(0.5))
             }
             
-            if !action.targetMuscle.isEmpty {
-                HStack {
-                    Text("🎯 发力点：\(action.targetMuscle)")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.lcText)
-                        .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background(Color.lcCheeseYellow.opacity(0.4)).cornerRadius(8)
+            HStack(spacing: 8) {
+                if !action.targetMuscle.isEmpty {
+                    Text("🎯 练：\(action.targetMuscle)")
+                        .font(.system(size: 11, weight: .bold)).foregroundColor(.lcText)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(Color.lcCheeseYellow.opacity(0.4)).cornerRadius(6)
                 }
+            }
+            
+            // ✨ 如果有间隙动作，特别高亮显示（防止无聊玩手机）
+            if let activeRest = action.activeRest {
+                HStack(spacing: 6) {
+                    Text("🔄 间隙休息：").font(.system(size: 12, weight: .bold)).foregroundColor(.lcAccentBlue)
+                    Text(activeRest).font(.system(size: 12, design: .rounded)).foregroundColor(.lcAccentBlue)
+                }
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.lcAccentBlue.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [4])))
             }
         }
         .padding(16).background(RoundedRectangle(cornerRadius: 20).fill(Color.lcCardBackground))
         .shadow(color: .black.opacity(0.02), radius: 5, y: 2)
     }
     
+    // MARK: - ✨ 核心大脑：生成三段式剧本
     private func generateRoutine() {
         withAnimation(.spring()) { isGenerating = true }
         #if os(iOS)
@@ -195,48 +224,97 @@ struct FitnessCoachView: View {
         #endif
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            var newRoutine: [FitnessAction] = []
+            var newPhases: [WorkoutPhase] = []
             
+            // 💡 智能组数计算：根据你选的时间，时间长就 4-5 组，时间短就 2 组
+            let targetSets = strengthMinutes >= 40 ? 4 : (strengthMinutes >= 20 ? 3 : 2)
+            
+            // ---- PART 1: 动态热身 ----
+            var warmupActions: [FitnessAction] = []
+            let wPool = getWarmupPool().shuffled()
+            warmupActions.append(wPool[0])
+            if totalMinutes > 20 { warmupActions.append(wPool[1]) } // 时间长就多热身一个
+            newPhases.append(WorkoutPhase(title: "Part 1 🔥 唤醒热身", subtitle: "唤醒关节，防止受伤", actions: warmupActions))
+            
+            // ---- PART 2: 力量训练 (带间隙超级组) ----
             if strengthMinutes > 0 {
-                let actionCount = strengthMinutes <= 15 ? 2 : (strengthMinutes <= 30 ? 3 : 5)
-                let pool = getActionPool(equip: selectedEquip, part: selectedPart)
-                let shuffledPool = pool.shuffled()
+                var mainActions: [FitnessAction] = []
+                let actionCount = strengthMinutes <= 15 ? 2 : (strengthMinutes <= 30 ? 3 : 4)
+                let mPool = getActionPool(equip: selectedEquip, part: selectedPart).shuffled()
+                let restPool = getActiveRestPool().shuffled()
                 
-                for i in 0..<min(actionCount, shuffledPool.count) {
-                    let action = shuffledPool[i]
-                    let actionWithName = FitnessAction(
-                        name: "\(action.name) (3组×12次)",
-                        targetMuscle: action.targetMuscle,
-                        tip: action.tip,
-                        emojiIcon: action.emojiIcon,
-                        steps: action.steps
-                    )
-                    newRoutine.append(actionWithName)
+                for i in 0..<min(actionCount, mPool.count) {
+                    var action = mPool[i]
+                    // 拼上智能计算的组数
+                    action.name = "\(action.name) (\(targetSets)组×12次)"
+                    // 随机塞入一个间隙动作
+                    action.activeRest = restPool[i % restPool.count]
+                    mainActions.append(action)
                 }
+                newPhases.append(WorkoutPhase(title: "Part 2 💪 核心训练", subtitle: "间隙不要看手机哦", actions: mainActions))
             }
             
+            // ---- PART 2.5: 有氧冲击 ----
             if cardioMinutes > 0 {
                 let cardioName = cardioTypes[selectedCardio].components(separatedBy: " ").last ?? ""
-                newRoutine.append(FitnessAction(
+                let cardioAction = FitnessAction(
                     name: "去 \(cardioName) 挥洒 \(Int(cardioMinutes)) 分钟汗水！",
-                    targetMuscle: "心肺系统 / 全身燃脂",
+                    targetMuscle: "心肺燃脂",
                     tip: "注意呼吸节奏，保持心率在燃脂区间（微喘但能断续说话的程度）。",
                     emojiIcon: "💦",
                     steps: ["先用慢速热身 3 分钟", "保持稳定配速，感受身体微微出汗", "最后 3 分钟慢慢降速，平复心率"]
-                ))
+                )
+                newPhases.append(WorkoutPhase(title: "Part 2.5 🏃‍♀️ 燃脂心肺", subtitle: "榨干最后的脂肪", actions: [cardioAction]))
             }
             
+            // ---- PART 3: 静态放松 ----
+            var cooldownActions: [FitnessAction] = []
+            let cPool = getCooldownPool().shuffled()
+            cooldownActions.append(cPool[0])
+            if totalMinutes > 30 { cooldownActions.append(cPool[1]) }
+            newPhases.append(WorkoutPhase(title: "Part 3 🧘‍♀️ 拉伸放松", subtitle: "排出乳酸，第二天不酸痛", actions: cooldownActions))
+            
             withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-                generatedRoutine = newRoutine
+                generatedPhases = newPhases
                 isGenerating = false
             }
         }
     }
     
-    // MARK: - 🧠 超级动作库（加入了拆解步骤）
+    // MARK: - 🧠 动作基础库
+    private func getWarmupPool() -> [FitnessAction] {
+        return [
+            FitnessAction(name: "原地小跑振臂 (1分钟)", targetMuscle: "全身唤醒", tip: "轻微出汗即可", emojiIcon: "🏃", steps: ["原地轻松小跑", "双手配合在胸前交叉振臂"]),
+            FitnessAction(name: "开合跳 (30次)", targetMuscle: "心肺激活", tip: "落地时膝盖微屈缓冲", emojiIcon: "🤸", steps: ["双脚并拢站立", "跳起时双脚分开，双手举过头顶拍手", "再次跳起还原"]),
+            FitnessAction(name: "猫牛式脊柱活动 (10次)", targetMuscle: "脊柱与核心", tip: "动作一定要慢，配合呼吸", emojiIcon: "🐈", steps: ["四足跪姿在瑜伽垫上", "吸气塌腰抬头，呼气拱背低头"]),
+            FitnessAction(name: "肩部环绕大风车 (每侧10圈)", targetMuscle: "肩关节", tip: "幅度尽量大，感受肩胛骨的运动", emojiIcon: "🚁", steps: ["双手伸直画大圈", "向前10圈，向后10圈"])
+        ]
+    }
+    
+    private func getCooldownPool() -> [FitnessAction] {
+        return [
+            FitnessAction(name: "大腿前侧拉伸 (每侧30秒)", targetMuscle: "股四头肌", tip: "保持身体直立，不要塌腰", emojiIcon: "🦩", steps: ["单腿站立，手抓住另一只脚的脚踝", "将脚跟拉向臀部，感受大腿前侧拉伸"]),
+            FitnessAction(name: "婴儿式背部放松 (1分钟)", targetMuscle: "下背部", tip: "尽情感受呼吸，放松全身", emojiIcon: "👶", steps: ["双膝跪地，臀部坐在脚跟上", "上半身向前趴在地上，双手向前伸展"]),
+            FitnessAction(name: "胸部拉伸 (每侧30秒)", targetMuscle: "胸大肌", tip: "肩膀下沉，不要耸肩", emojiIcon: "🚪", steps: ["找一面墙或门框，单手小臂贴住墙", "身体向反方向扭转，感受胸部拉扯"]),
+            FitnessAction(name: "鸽子式臀部拉伸 (每侧30秒)", targetMuscle: "臀大肌", tip: "如果膝盖痛就立刻停止或减小幅度", emojiIcon: "🕊️", steps: ["一条腿屈膝横放在身前", "另一条腿向后伸直，上半身慢慢趴下"])
+        ]
+    }
+    
+    // 专门给 ADHD 设计的“防玩手机”间隙动作池
+    private func getActiveRestPool() -> [String] {
+        return [
+            "腿下击掌 20 次",
+            "原地轻快小跑 30 秒",
+            "靠墙静蹲休息 30 秒",
+            "站立抱膝走 10 步",
+            "慢速高抬腿 20 次",
+            "深呼吸，喝两口水，不碰手机！",
+            "原地扭胯放松 20 秒"
+        ]
+    }
+    
     private func getActionPool(equip: Int, part: Int) -> [FitnessAction] {
         var pool: [FitnessAction] = []
-        
         if equip == 0 { // 徒手
             if part == 1 || part == 0 {
                 pool.append(contentsOf: [
@@ -246,13 +324,13 @@ struct FitnessCoachView: View {
             }
             if part == 2 || part == 0 {
                 pool.append(contentsOf: [
-                    FitnessAction(name: "徒手深蹲", targetMuscle: "臀腿综合", tip: "膝盖切忌内扣！脚尖与膝盖方向一致。", emojiIcon: "🪑", steps: ["双脚打开与肩同宽，脚尖微向外", "吸气，臀部向后坐下，就像找一把隐形的椅子", "大腿与地面平行后，呼气蹬地起身"]),
+                    FitnessAction(name: "徒手深蹲", targetMuscle: "臀腿综合", tip: "膝盖切忌内扣！脚尖与膝盖方向一致。", emojiIcon: "🪑", steps: ["双脚打开与肩同宽，脚尖微向外", "吸气，臀部向后坐下", "大腿与地面平行后，呼气蹬地起身"]),
                     FitnessAction(name: "静态臀桥", targetMuscle: "臀大肌", tip: "用臀部发力顶起，不要用腰椎往上顶。", emojiIcon: "🌉", steps: ["仰卧，双腿屈膝脚掌踩地", "呼气，夹紧屁股将骨盆顶起，身体呈一条直线", "在最高点停顿并持续夹紧臀部"])
                 ])
             }
             if part == 3 || part == 0 {
                 pool.append(contentsOf: [
-                    FitnessAction(name: "死虫子 (Deadbug)", targetMuscle: "深层核心", tip: "下背部必须死死贴住地面！", emojiIcon: "🪲", steps: ["仰卧，双手伸直指天，双腿屈膝90度抬起", "下背部用力压死地面，不要留缝隙", "呼气，同时伸直左手和右腿（不触地），吸气还原，交替进行"]),
+                    FitnessAction(name: "死虫子", targetMuscle: "深层核心", tip: "下背部必须死死贴住地面！", emojiIcon: "🪲", steps: ["仰卧，双手伸直指天，双腿屈膝90度抬起", "下背部用力压死地面，不要留缝隙", "呼气，同时伸直左手和右腿（不触地），吸气还原，交替进行"]),
                     FitnessAction(name: "平板支撑", targetMuscle: "整体核心", tip: "收紧腹部和臀部，切忌塌腰！", emojiIcon: "🪵", steps: ["手肘撑地，双脚打开与肩同宽", "夹紧臀部，收紧肚子，身体绷直像一块木板", "保持正常呼吸，腰酸立刻停止"])
                 ])
             }
@@ -303,7 +381,7 @@ struct FitnessCoachView: View {
     }
 }
 
-// MARK: - ✨ 全新组件：从底部弹出的“动作详解放大镜”
+// MARK: - ✨ 弹窗动作详解放大镜 (保持不变，依旧好用)
 struct ActionDetailSheet: View {
     let action: FitnessAction
     @Environment(\.dismiss) var dismiss
@@ -312,79 +390,43 @@ struct ActionDetailSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // 1. 占位图解（以后有了真图可以替换这里）
                     ZStack {
-                        RoundedRectangle(cornerRadius: 24)
-                            .fill(Color.lcCheeseYellow.opacity(0.2))
-                            .frame(height: 200)
-                        
-                        // 💡 提示：如果你以后有自己的动图或图片，把下面这行注释打开并填上图片名
-                        // Image("你的图片名字").resizable().scaledToFit()
-                        
-                        // 目前使用大号 Emoji 作为视觉引导
-                        Text(action.emojiIcon)
-                            .font(.system(size: 100))
-                            .shadow(color: .black.opacity(0.1), radius: 10, y: 10)
+                        RoundedRectangle(cornerRadius: 24).fill(Color.lcCheeseYellow.opacity(0.2)).frame(height: 200)
+                        Text(action.emojiIcon).font(.system(size: 100)).shadow(color: .black.opacity(0.1), radius: 10, y: 10)
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 20)
+                    .padding(.horizontal).padding(.top, 20)
                     
-                    // 2. 核心避坑指南
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
                             Text("起司私教避坑指南").font(.headline).foregroundColor(.lcText)
                         }
-                        Text(action.tip)
-                            .font(.system(.body, design: .rounded))
-                            .foregroundColor(.lcTextSecondary)
-                            .lineSpacing(4)
+                        Text(action.tip).font(.system(.body, design: .rounded)).foregroundColor(.lcTextSecondary).lineSpacing(4)
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.orange.opacity(0.1))
-                    .cornerRadius(16)
-                    .padding(.horizontal)
+                    .padding().frame(maxWidth: .infinity, alignment: .leading).background(Color.orange.opacity(0.1)).cornerRadius(16).padding(.horizontal)
                     
-                    // 3. 步骤拆解（Notion 风格）
                     VStack(alignment: .leading, spacing: 16) {
                         Text("动作拆解：").font(.headline).foregroundColor(.lcText)
-                        
                         ForEach(0..<action.steps.count, id: \.self) { index in
                             HStack(alignment: .top, spacing: 16) {
-                                // 步骤序号
                                 ZStack {
                                     Circle().fill(Color.lcAccentBlue).frame(width: 28, height: 28)
                                     Text("\(index + 1)").font(.caption.bold()).foregroundColor(.white)
                                 }
-                                // 步骤文字
-                                Text(action.steps[index])
-                                    .font(.system(.body, design: .rounded))
-                                    .foregroundColor(.lcTextSecondary)
-                                    .padding(.top, 4)
+                                Text(action.steps[index]).font(.system(.body, design: .rounded)).foregroundColor(.lcTextSecondary).padding(.top, 4)
                                 Spacer()
                             }
                         }
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.lcCardBackground)
-                    .cornerRadius(16)
-                    .padding(.horizontal)
-                    
+                    .padding().frame(maxWidth: .infinity, alignment: .leading).background(Color.lcCardBackground).cornerRadius(16).padding(.horizontal)
                 }
                 .padding(.bottom, 40)
             }
             .background(Color.lcBackground.ignoresSafeArea())
-            .navigationTitle(action.name.components(separatedBy: "(").first ?? action.name) // 只显示动作名，去掉组数
+            .navigationTitle(action.name.components(separatedBy: " (").first ?? action.name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") { dismiss() }
-                }
-            }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() } } }
         }
-        // 允许半屏拖动（如果支持的 iOS 版本够高的话）
         .presentationDetents([.fraction(0.8), .large])
     }
 }
