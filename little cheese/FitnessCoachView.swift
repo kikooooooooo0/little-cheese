@@ -176,9 +176,9 @@ struct FitnessCoachView: View {
                         .font(.system(.headline, design: .rounded))
                         .foregroundColor(action.name.contains("汗水") ? .lcAccentBlue : .lcText)
                     
-                    // ✨ 替换后的新代码：让核心数据（配速/阻力）直接显现
-                    HStack(spacing: 10) {
-                        // 1. 显示组数/次数/总时长
+                    // MARK: --- 从这里开始替换 ---
+                    HStack(spacing: 8) {
+                        // 1. 显示基础容量（如：10 分钟 或 3 组 x 12 次）
                         if !action.baseReps.isEmpty {
                             Text(action.baseReps)
                                 .font(.system(size: 14, weight: .black, design: .rounded))
@@ -189,11 +189,11 @@ struct FitnessCoachView: View {
                                 .cornerRadius(8)
                         }
                         
-                        // 2. 直接并排显示具体的配速、阻力、坡度数据
+                        // 2. 直接显示具体的阻力、坡度、速度
                         if !action.quickStats.isEmpty {
                             ForEach(action.quickStats, id: \.self) { stat in
                                 HStack(spacing: 4) {
-                                    // 根据文字内容自动配个小图标，更有趣味
+                                    // 根据关键词匹配小图标
                                     if stat.contains("阻力") { Image(systemName: "gearshape.fill") }
                                     else if stat.contains("坡度") { Image(systemName: "arrow.up.forward.circle.fill") }
                                     else if stat.contains("速度") { Image(systemName: "gauge.with.needle.fill") }
@@ -202,17 +202,18 @@ struct FitnessCoachView: View {
                                 }
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
                                 .foregroundColor(.lcTextSecondary)
-                                .padding(.horizontal, 10)
+                                .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(Color.lcBackground)
                                 .cornerRadius(8)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.lcSoftBlue.opacity(0.5), lineWidth: 1)
+                                        .stroke(Color.lcSoftBlue.opacity(0.5), lineWidth: 0.5)
                                 )
                             }
                         }
                     }
+                    // MARK: --- 替换结束 ---
                     .padding(.vertical, 2)
                 }
                 Spacer()
