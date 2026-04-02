@@ -244,13 +244,28 @@ struct FitnessCoachView: View {
             // ---- PART 2.5: 有氧 ----
             if cardioMinutes > 0 {
                 let cardioName = cardioTypes[selectedCardio].components(separatedBy: " ").last ?? ""
-                let cardioAction = FitnessAction(
-                    name: "去 \(cardioName) 挥洒汗水！", targetMuscle: "心肺燃脂", tip: "保持微喘但能说话的心率", emojiIcon: "💦",
-                    steps: ["慢速热身 3 分钟", "保持稳定配速", "最后 3 分钟慢慢降速"], baseReps: "\(Int(cardioMinutes)) 分钟"
+                let cardioAction = getSmartCardioAction(
+                    minutes: Int(cardioMinutes),
+                    selectedCardioName: cardioName
                 )
-                newPhases.append(WorkoutPhase(title: "Part 2.5 🏃‍♀️ 燃脂心肺", subtitle: "榨干最后的脂肪", actions: [cardioAction]))
+                
+                let cardioSubtitle: String
+                if cardioMinutes <= 15 {
+                    cardioSubtitle = "恢复循环，轻轻找回状态"
+                } else if cardioMinutes <= 30 {
+                    cardioSubtitle = "稳定输出，进入燃脂节奏"
+                } else {
+                    cardioSubtitle = "冲刺 + 恢复，挑战心肺上限"
+                }
+                
+                newPhases.append(
+                    WorkoutPhase(
+                        title: "Part 2.5 🏃‍♀️ 智能有氧",
+                        subtitle: cardioSubtitle,
+                        actions: [cardioAction]
+                    )
+                )
             }
-            
             // ---- PART 3: 放松 ----
             var cooldownActions: [FitnessAction] = []
             let cPool = getSmartCooldownPool(part: selectedPart)
@@ -379,7 +394,48 @@ struct FitnessCoachView: View {
     private func getActiveRestPool() -> [String] {
         return ["腿下击掌 20 次", "靠墙静蹲休息 30 秒", "站立抱膝走 10 步", "慢速高抬腿 20 次", "深呼吸，喝两口水！", "核心收紧站立 20 秒"]
     }
-    
+    private func getSmartCardioAction(minutes: Int, selectedCardioName: String) -> FitnessAction {
+        if minutes <= 15 {
+            return FitnessAction(
+                name: "去 \(selectedCardioName) 做恢复有氧",
+                targetMuscle: "心肺恢复 / 轻燃脂",
+                tip: "今天重点不是拼命，而是让身体热起来、流汗一点点、状态回来。",
+                emojiIcon: "🌿",
+                steps: [
+                    "前 2 分钟：非常轻松地开始，让呼吸慢慢打开",
+                    "中间 \(max(6, minutes - 4)) 分钟：保持舒服配速，微微喘但还能完整说话",
+                    "最后 2 分钟：逐渐减速，当作主动恢复"
+                ],
+                baseReps: "\(minutes) 分钟"
+            )
+        } else if minutes <= 30 {
+            return FitnessAction(
+                name: "去 \(selectedCardioName) 做稳态燃脂",
+                targetMuscle: "心肺耐力 / 稳态燃脂",
+                tip: "保持稳定输出，不要一开始冲太快。全程以“能说短句、不能唱歌”为参考。",
+                emojiIcon: "💦",
+                steps: [
+                    "前 3 分钟：慢速热身，逐步进入状态",
+                    "中间 \(max(12, minutes - 6)) 分钟：保持稳定节奏，呼吸连续，心率平稳上来",
+                    "最后 3 分钟：慢慢降速，别突然停下"
+                ],
+                baseReps: "\(minutes) 分钟"
+            )
+        } else {
+            return FitnessAction(
+                name: "去 \(selectedCardioName) 做间歇挑战",
+                targetMuscle: "心肺冲击 / 燃脂挑战",
+                tip: "快的时候认真快，慢的时候真的放慢。间歇的质量比一味硬扛更重要。",
+                emojiIcon: "⚡",
+                steps: [
+                    "前 5 分钟：轻松热身，逐渐提速",
+                    "接着做 6 轮：快 1 分钟 + 慢 2 分钟",
+                    "最后 \(max(5, minutes - 23)) 分钟：回到轻松稳态，慢慢收尾"
+                ],
+                baseReps: "\(minutes) 分钟"
+            )
+        }
+    }
     // 👑 终极强制平衡输出组合（✨ 重构：最强3D核心模块）
     private func getSmartBalancedPool(equip: Int, part: Int) -> [FitnessAction] {
         var pool: [FitnessAction] = []
