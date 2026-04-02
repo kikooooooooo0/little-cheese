@@ -271,15 +271,88 @@ struct FitnessCoachView: View {
     
     // MARK: - 🧠 引擎数据层
     private func getSmartWarmupPool(part: Int) -> [FitnessAction] {
-        if part == 2 {
+        if part == 2 { // 下肢热身：髋 + 臀唤醒
             return [
-                FitnessAction(name: "动态臀桥唤醒", targetMuscle: "臀大肌", tip: "不要用腰顶，屁股夹紧发力", emojiIcon: "🌉", steps: ["仰卧屈膝，脚跟踩地", "快速顶起臀部，慢速放下"], baseReps: "15 次"),
-                FitnessAction(name: "世界最伟大拉伸", targetMuscle: "髋关节活动度", tip: "动作一定要慢，感受髋部被打开", emojiIcon: "🌍", steps: ["弓步迈出，同侧手肘尽量触地", "随后同侧手臂向天花板展开扭转胸椎"], baseReps: "每侧 5 次")
+                FitnessAction(
+                    name: "动态臀桥唤醒",
+                    targetMuscle: "臀大肌",
+                    tip: "不要用腰顶，屁股夹紧发力",
+                    emojiIcon: "🌉",
+                    steps: [
+                        "仰卧屈膝，脚跟踩地",
+                        "呼气时顶起臀部，感受屁股发力",
+                        "慢慢放下，不要砸回地面"
+                    ],
+                    baseReps: "15 次"
+                ),
+                FitnessAction(
+                    name: "世界最伟大拉伸",
+                    targetMuscle: "髋关节活动度",
+                    tip: "动作一定要慢，感受髋部和胸椎被打开",
+                    emojiIcon: "🌍",
+                    steps: [
+                        "弓步迈出，同侧手肘尽量靠近地面",
+                        "随后同侧手臂向天花板打开，带动胸椎旋转",
+                        "回到起始位后重复"
+                    ],
+                    baseReps: "每侧 5 次"
+                )
             ].shuffled()
-        } else {
+            
+        } else if part == 1 { // 背部热身：脊柱活动 + 肩胛控制
             return [
-                FitnessAction(name: "猫牛式脊柱活动", targetMuscle: "脊柱与核心", tip: "动作缓慢，配合呼吸", emojiIcon: "🐈", steps: ["四足跪姿，吸气塌腰，呼气拱背"], baseReps: "10 次"),
-                FitnessAction(name: "肩部环绕大风车", targetMuscle: "肩关节", tip: "幅度尽量大", emojiIcon: "🚁", steps: ["双手伸直画大圈，前后各10圈"], baseReps: "每侧 10 圈")
+                FitnessAction(
+                    name: "猫牛式脊柱活动",
+                    targetMuscle: "脊柱灵活度",
+                    tip: "一节一节地活动脊柱，不要只甩脖子",
+                    emojiIcon: "🐈",
+                    steps: [
+                        "四足跪姿，手在肩下，膝在髋下",
+                        "吸气时抬头塌腰，胸口打开",
+                        "呼气时低头拱背，肚脐向里收"
+                    ],
+                    baseReps: "10 次"
+                ),
+                FitnessAction(
+                    name: "墙天使预热 / 墙滑",
+                    targetMuscle: "肩胛控制",
+                    tip: "重点不是抬高，而是肋骨别乱翻、肩膀别耸",
+                    emojiIcon: "🪽",
+                    steps: [
+                        "背靠墙站立，上背尽量贴墙",
+                        "手臂摆成 W 形，缓慢向上滑到 Y 形",
+                        "全程保持脖子放松，感受肩胛顺畅滑动"
+                    ],
+                    baseReps: "8 - 10 次"
+                )
+            ].shuffled()
+            
+        } else { // 核心热身：呼吸控制 + 深层稳定预激活
+            return [
+                FitnessAction(
+                    name: "死虫子预激活",
+                    targetMuscle: "深层核心",
+                    tip: "下背部必须贴地，不要让腰偷偷拱起来",
+                    emojiIcon: "🪲",
+                    steps: [
+                        "仰卧，双手指天，双腿抬起屈膝 90 度",
+                        "先把下背压平地面，再缓慢伸出对侧手脚",
+                        "动作做小一点没关系，重点是稳定"
+                    ],
+                    baseReps: "每侧 6 - 8 次"
+                ),
+                FitnessAction(
+                    name: "骨盆呼吸收紧",
+                    targetMuscle: "腹横肌 / 骨盆控制",
+                    tip: "呼气时轻轻收紧下腹，不要耸肩憋气",
+                    emojiIcon: "🌬️",
+                    steps: [
+                        "仰卧屈膝，双脚踩地，双手放在下腹",
+                        "吸气时肋骨打开，呼气时轻轻收紧核心",
+                        "感受下腹稳定，而不是大力卷腹"
+                    ],
+                    baseReps: "6 - 8 次呼吸"
+                )
             ].shuffled()
         }
     }
