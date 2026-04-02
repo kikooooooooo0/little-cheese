@@ -10,8 +10,8 @@ struct FitnessAction: Identifiable, Hashable {
     let steps: [String]
     var activeRest: String? = nil
     var baseReps: String = ""
+    var quickStats: [String] = []
 }
-
 // MARK: - 训练阶段模型
 struct WorkoutPhase: Identifiable {
     let id = UUID()
@@ -171,11 +171,49 @@ struct FitnessCoachView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
                 Text(action.emojiIcon).font(.title3)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(action.name).font(.system(.headline, design: .rounded)).foregroundColor(action.name.contains("汗水") ? .lcAccentBlue : .lcText)
-                    if !action.baseReps.isEmpty {
-                        Text(action.baseReps).font(.system(size: 14, weight: .bold, design: .rounded)).foregroundColor(.lcAccentBlue)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(action.name)
+                        .font(.system(.headline, design: .rounded))
+                        .foregroundColor(action.name.contains("汗水") ? .lcAccentBlue : .lcText)
+                    
+                    // ✨ 替换后的新代码：让核心数据（配速/阻力）直接显现
+                    HStack(spacing: 10) {
+                        // 1. 显示组数/次数/总时长
+                        if !action.baseReps.isEmpty {
+                            Text(action.baseReps)
+                                .font(.system(size: 14, weight: .black, design: .rounded))
+                                .foregroundColor(.lcAccentBlue)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.lcAccentBlue.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+                        
+                        // 2. 直接并排显示具体的配速、阻力、坡度数据
+                        if !action.quickStats.isEmpty {
+                            ForEach(action.quickStats, id: \.self) { stat in
+                                HStack(spacing: 4) {
+                                    // 根据文字内容自动配个小图标，更有趣味
+                                    if stat.contains("阻力") { Image(systemName: "gearshape.fill") }
+                                    else if stat.contains("坡度") { Image(systemName: "arrow.up.forward.circle.fill") }
+                                    else if stat.contains("速度") { Image(systemName: "gauge.with.needle.fill") }
+                                    
+                                    Text(stat)
+                                }
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundColor(.lcTextSecondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Color.lcBackground)
+                                .cornerRadius(8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.lcSoftBlue.opacity(0.5), lineWidth: 1)
+                                )
+                            }
+                        }
                     }
+                    .padding(.vertical, 2)
                 }
                 Spacer()
                 Image(systemName: "chevron.right.circle.fill").foregroundColor(.lcSoftBlue.opacity(0.5))
@@ -432,38 +470,41 @@ struct FitnessCoachView: View {
                     FitnessAction(
                         name: "椭圆机热身段",
                         targetMuscle: "心肺唤醒",
-                        tip: "先顺起来，不要急着加阻力。",
+                        tip: "先把关节和呼吸带起来，不要急着上强度。",
                         emojiIcon: "🛸",
                         steps: [
-                            "坡度 6",
-                            "阻力 3",
-                            "保持均匀踩踏，让身体慢慢热起来"
+                            "匀速踩踏，让身体彻底热开",
+                            "呼吸慢慢加深，不要憋气",
+                            "感觉到微微发热就对了"
                         ],
-                        baseReps: "8 分钟"
+                        baseReps: "10 分钟",
+                        quickStats: ["坡度 10", "阻力 4"]
                     ),
                     FitnessAction(
-                        name: "椭圆机稳态燃脂段",
-                        targetMuscle: "心肺耐力",
-                        tip: "这段是主训练，稳定比乱冲更重要。",
-                        emojiIcon: "💦",
+                        name: "椭圆机主训练段",
+                        targetMuscle: "心肺耐力 / 下肢输出",
+                        tip: "这一段是主菜，稳住节奏，不要东一脚西一脚。",
+                        emojiIcon: "⚡",
                         steps: [
-                            "坡度 8 - 10",
-                            "阻力 4 - 5",
-                            "保持持续输出，微喘但还能说短句"
+                            "保持持续输出，呼吸明显变重但还能控制动作",
+                            "不要只顾快，阻力顶住更重要",
+                            "尽量全程节奏稳定"
                         ],
-                        baseReps: "\(max(12, minutes - 12)) 分钟"
+                        baseReps: "\(max(20, minutes - 20)) 分钟",
+                        quickStats: ["坡度 12", "阻力 6"]
                     ),
                     FitnessAction(
                         name: "椭圆机冷却段",
                         targetMuscle: "主动恢复",
-                        tip: "最后把呼吸慢慢放下来，不要直接停。",
+                        tip: "最后不是摆烂，是慢慢把身体接回来。",
                         emojiIcon: "🍃",
                         steps: [
-                            "坡度 5 - 6",
-                            "阻力 2 - 3",
-                            "逐渐减速，收尾"
+                            "放慢节奏，让心率回落",
+                            "肩膀放松，不要耸着练",
+                            "呼吸慢慢恢复平稳"
                         ],
-                        baseReps: "4 分钟"
+                        baseReps: "10 分钟",
+                        quickStats: ["坡度 10", "阻力 2"]
                     )
                 ]
                 
