@@ -244,25 +244,40 @@ struct FitnessCoachView: View {
             // ---- PART 2.5: 有氧 ----
             if cardioMinutes > 0 {
                 let cardioName = cardioTypes[selectedCardio].components(separatedBy: " ").last ?? ""
-                let cardioAction = getSmartCardioAction(
+                let cardioActions = getSmartCardioActions(
                     minutes: Int(cardioMinutes),
                     selectedCardioName: cardioName
                 )
-                
+
                 let cardioSubtitle: String
                 if cardioMinutes <= 15 {
-                    cardioSubtitle = "恢复循环，轻轻找回状态"
+                    cardioSubtitle = "轻量活动，恢复一下状态"
                 } else if cardioMinutes <= 30 {
-                    cardioSubtitle = "稳定输出，进入燃脂节奏"
+                    cardioSubtitle = "分段稳态，开始进入节奏"
                 } else {
-                    cardioSubtitle = "冲刺 + 恢复，挑战心肺上限"
+                    switch cardioName {
+                    case "椭圆机":
+                        cardioSubtitle = "坡度 + 阻力分段输出"
+                    case "跑步机":
+                        cardioSubtitle = "热身、主训练、冷却三段跑"
+                    case "动感单车":
+                        cardioSubtitle = "阻力分段，稳定踩完全程"
+                    case "爬楼机":
+                        cardioSubtitle = "臀腿耐力三段推进"
+                    case "散步":
+                        cardioSubtitle = "快走耐力，轻压力燃脂"
+                    case "游泳":
+                        cardioSubtitle = "分段游动，节奏更完整"
+                    default:
+                        cardioSubtitle = "分段有氧，跟着节奏做完"
+                    }
                 }
-                
+
                 newPhases.append(
                     WorkoutPhase(
                         title: "Part 2.5 🏃‍♀️ 智能有氧",
                         subtitle: cardioSubtitle,
-                        actions: [cardioAction]
+                        actions: cardioActions
                     )
                 )
             }
@@ -394,138 +409,401 @@ struct FitnessCoachView: View {
     private func getActiveRestPool() -> [String] {
         return ["腿下击掌 20 次", "靠墙静蹲休息 30 秒", "站立抱膝走 10 步", "慢速高抬腿 20 次", "深呼吸，喝两口水！", "核心收紧站立 20 秒"]
     }
-    private func getSmartCardioAction(minutes: Int, selectedCardioName: String) -> FitnessAction {
+    private func getSmartCardioActions(minutes: Int, selectedCardioName: String) -> [FitnessAction] {
         if minutes <= 15 {
-            return FitnessAction(
-                name: "去 \(selectedCardioName) 做恢复有氧",
-                targetMuscle: "心肺恢复 / 轻燃脂",
-                tip: "今天重点不是拼命，而是让身体热起来、流汗一点点、状态回来。",
-                emojiIcon: "🌿",
-                steps: [
-                    "前 2 分钟：非常轻松地开始，让呼吸慢慢打开",
-                    "中间 \(max(6, minutes - 4)) 分钟：保持舒服配速，微微喘但还能完整说话",
-                    "最后 2 分钟：逐渐减速，当作主动恢复"
-                ],
-                baseReps: "\(minutes) 分钟"
-            )
+            return [
+                FitnessAction(
+                    name: "轻松热身段",
+                    targetMuscle: "心肺唤醒",
+                    tip: "先把呼吸和节奏找回来，不要一上来就猛冲。",
+                    emojiIcon: "🌿",
+                    steps: [
+                        "先用非常轻松的节奏开始",
+                        "保持可以完整说话的呼吸感",
+                        "结束时身体微微发热就够了"
+                    ],
+                    baseReps: "\(minutes) 分钟"
+                )
+            ]
         } else if minutes <= 30 {
-            return FitnessAction(
-                name: "去 \(selectedCardioName) 做稳态燃脂",
-                targetMuscle: "心肺耐力 / 稳态燃脂",
-                tip: "保持稳定输出，不要一开始冲太快。全程以“能说短句、不能唱歌”为参考。",
-                emojiIcon: "💦",
-                steps: [
-                    "前 3 分钟：慢速热身，逐步进入状态",
-                    "中间 \(max(12, minutes - 6)) 分钟：保持稳定节奏，呼吸连续，心率平稳上来",
-                    "最后 3 分钟：慢慢降速，别突然停下"
-                ],
-                baseReps: "\(minutes) 分钟"
-            )
-        } else {
             switch selectedCardioName {
-            case "爬楼机":
-                return FitnessAction(
-                    name: "去爬楼机做爬坡耐力挑战",
-                    targetMuscle: "臀腿耐力 / 心肺冲击",
-                    tip: "爬楼机最怕前面太猛。抓扶手可以轻扶，但不要整个人挂在上面。",
-                    emojiIcon: "🧗‍♀️",
-                    steps: [
-                        "前 5 分钟：低速热身，找到节奏",
-                        "接着 4 轮：2 分钟中高强度 + 2 分钟恢复",
-                        "中高强度段：速度比热身明显更快，保持核心收紧、脚步稳定",
-                        "最后 \(max(5, minutes - 21)) 分钟：降回舒服速度，慢慢收尾"
-                    ],
-                    baseReps: "\(minutes) 分钟"
-                )
-                
             case "椭圆机":
-                return FitnessAction(
-                    name: "去椭圆机做阻力间歇",
-                    targetMuscle: "心肺耐力 / 下肢持续输出",
-                    tip: "重点是稳定持续发力，不要只顾速度乱冲。阻力和节奏同时受控才有训练感。",
-                    emojiIcon: "🛸",
-                    steps: [
-                        "前 5 分钟：阻力 3 - 4，轻松热身",
-                        "接着 5 轮：2 分钟挑战段 + 2 分钟恢复段",
-                        "挑战段建议：坡度 8 - 10 / 阻力 5 - 6；恢复段建议：坡度 4 - 6 / 阻力 2 - 3",
-                        "最后 \(max(5, minutes - 25)) 分钟：回到低阻力，均匀呼吸慢慢结束"
-                    ],
-                    baseReps: "\(minutes) 分钟"
-                )
+                return [
+                    FitnessAction(
+                        name: "椭圆机热身段",
+                        targetMuscle: "心肺唤醒",
+                        tip: "先顺起来，不要急着加阻力。",
+                        emojiIcon: "🛸",
+                        steps: [
+                            "坡度 6",
+                            "阻力 3",
+                            "保持均匀踩踏，让身体慢慢热起来"
+                        ],
+                        baseReps: "8 分钟"
+                    ),
+                    FitnessAction(
+                        name: "椭圆机稳态燃脂段",
+                        targetMuscle: "心肺耐力",
+                        tip: "这段是主训练，稳定比乱冲更重要。",
+                        emojiIcon: "💦",
+                        steps: [
+                            "坡度 8 - 10",
+                            "阻力 4 - 5",
+                            "保持持续输出，微喘但还能说短句"
+                        ],
+                        baseReps: "\(max(12, minutes - 12)) 分钟"
+                    ),
+                    FitnessAction(
+                        name: "椭圆机冷却段",
+                        targetMuscle: "主动恢复",
+                        tip: "最后把呼吸慢慢放下来，不要直接停。",
+                        emojiIcon: "🍃",
+                        steps: [
+                            "坡度 5 - 6",
+                            "阻力 2 - 3",
+                            "逐渐减速，收尾"
+                        ],
+                        baseReps: "4 分钟"
+                    )
+                ]
                 
             case "跑步机":
-                return FitnessAction(
-                    name: "去跑步机做坡度间歇",
-                    targetMuscle: "心肺冲击 / 下肢耐力",
-                    tip: "快走坡度和慢跑都可以，选你能稳住动作的版本，不要追求狼狈。",
-                    emojiIcon: "🏃‍♀️",
-                    steps: [
-                        "前 5 分钟：平地慢走或慢跑热身",
-                        "接着 5 轮：1 分钟挑战 + 2 分钟恢复",
-                        "挑战段建议：坡度 6 - 10，速度提高到明显发热；恢复段：坡度降到 0 - 3，速度放慢",
-                        "最后 \(max(5, minutes - 20)) 分钟：轻松走收尾"
-                    ],
-                    baseReps: "\(minutes) 分钟"
-                )
-                
-            case "游泳":
-                return FitnessAction(
-                    name: "去游泳做分段耐力课",
-                    targetMuscle: "心肺耐力 / 全身协调",
-                    tip: "游泳不要全程一个死速度。分组游会更像训练，也更容易坚持。",
-                    emojiIcon: "🏊‍♀️",
-                    steps: [
-                        "前 5 分钟：轻松游，找呼吸节奏",
-                        "接着做 6 组：1 趟偏快 + 1 趟轻松恢复",
-                        "偏快段专注动作完整，不要乱扑腾；恢复段慢慢游，把呼吸找回来",
-                        "最后 \(max(5, minutes - 23)) 分钟：轻松连续游，当作放松"
-                    ],
-                    baseReps: "\(minutes) 分钟"
-                )
-                
-            case "动感单车":
-                return FitnessAction(
-                    name: "去动感单车做阻力冲刺",
-                    targetMuscle: "心肺冲击 / 大腿耐力",
-                    tip: "快的时候别只是腿乱转，阻力要够；慢的时候真的放松，不要硬撑。",
-                    emojiIcon: "🚴",
-                    steps: [
-                        "前 5 分钟：低阻力热身，腿慢慢转起来",
-                        "接着 6 轮：1 分钟高踏频或中高阻力 + 2 分钟轻松骑",
-                        "挑战段：阻力调到你能稳定输出但会喘的程度；恢复段把阻力明显降下来",
-                        "最后 \(max(5, minutes - 23)) 分钟：低阻力慢骑收尾"
-                    ],
-                    baseReps: "\(minutes) 分钟"
-                )
-                
-            case "散步":
-                return FitnessAction(
-                    name: "去做耐力快走",
-                    targetMuscle: "低压心肺 / 恢复燃脂",
-                    tip: "散步不适合硬写成冲刺课，更适合做长一点的耐力快走。",
-                    emojiIcon: "🚶",
-                    steps: [
-                        "前 5 分钟：轻松走，让身体热起来",
-                        "中间 \(max(20, minutes - 10)) 分钟：保持比平时散步更快一点的步频，手臂自然摆动",
-                        "如果在跑步机上，可以加入轻坡度：坡度 3 - 6，速度保持能持续说短句",
-                        "最后 5 分钟：逐渐放慢，当作主动恢复"
-                    ],
-                    baseReps: "\(minutes) 分钟"
-                )
+                return [
+                    FitnessAction(
+                        name: "跑步机热身段",
+                        targetMuscle: "心肺唤醒",
+                        tip: "先把步频和呼吸找顺。",
+                        emojiIcon: "🏃‍♀️",
+                        steps: [
+                            "坡度 0 - 2",
+                            "轻松走或慢跑",
+                            "让身体慢慢进入状态"
+                        ],
+                        baseReps: "8 分钟"
+                    ),
+                    FitnessAction(
+                        name: "跑步机稳态段",
+                        targetMuscle: "心肺耐力",
+                        tip: "速度不要忽快忽慢，稳住最重要。",
+                        emojiIcon: "🔥",
+                        steps: [
+                            "坡度 3 - 5",
+                            "速度提高到微喘但能坚持",
+                            "保持均匀节奏"
+                        ],
+                        baseReps: "\(max(12, minutes - 12)) 分钟"
+                    ),
+                    FitnessAction(
+                        name: "跑步机冷却段",
+                        targetMuscle: "主动恢复",
+                        tip: "慢慢降速，不要突然跳下跑步机。",
+                        emojiIcon: "🍃",
+                        steps: [
+                            "坡度回到 0 - 1",
+                            "速度慢慢降下来",
+                            "呼吸恢复平稳"
+                        ],
+                        baseReps: "4 分钟"
+                    )
+                ]
                 
             default:
-                return FitnessAction(
-                    name: "去 \(selectedCardioName) 做间歇挑战",
-                    targetMuscle: "心肺冲击 / 燃脂挑战",
-                    tip: "快的时候认真快，慢的时候真的放慢。间歇质量比一味硬扛更重要。",
-                    emojiIcon: "⚡",
-                    steps: [
-                        "前 5 分钟：轻松热身，逐渐提速",
-                        "接着做 6 轮：快 1 分钟 + 慢 2 分钟",
-                        "最后 \(max(5, minutes - 23)) 分钟：回到轻松稳态，慢慢收尾"
-                    ],
-                    baseReps: "\(minutes) 分钟"
-                )
+                return [
+                    FitnessAction(
+                        name: "\(selectedCardioName) 热身段",
+                        targetMuscle: "心肺唤醒",
+                        tip: "先慢慢热起来。",
+                        emojiIcon: "🌿",
+                        steps: ["轻松开始", "呼吸打开", "节奏稳定"],
+                        baseReps: "8 分钟"
+                    ),
+                    FitnessAction(
+                        name: "\(selectedCardioName) 稳态段",
+                        targetMuscle: "心肺耐力",
+                        tip: "保持稳定输出。",
+                        emojiIcon: "💦",
+                        steps: ["进入主训练节奏", "保持微喘", "不要忽快忽慢"],
+                        baseReps: "\(max(12, minutes - 12)) 分钟"
+                    ),
+                    FitnessAction(
+                        name: "\(selectedCardioName) 冷却段",
+                        targetMuscle: "主动恢复",
+                        tip: "慢慢收尾。",
+                        emojiIcon: "🍃",
+                        steps: ["逐渐减速", "恢复呼吸", "完成收尾"],
+                        baseReps: "4 分钟"
+                    )
+                ]
+            }
+        } else {
+            switch selectedCardioName {
+            case "椭圆机":
+                return [
+                    FitnessAction(
+                        name: "椭圆机热身段",
+                        targetMuscle: "心肺唤醒",
+                        tip: "先把关节和呼吸带起来，不要急着上强度。",
+                        emojiIcon: "🛸",
+                        steps: [
+                            "坡度 10",
+                            "阻力 4",
+                            "匀速踩踏，让身体彻底热开"
+                        ],
+                        baseReps: "10 分钟"
+                    ),
+                    FitnessAction(
+                        name: "椭圆机主训练段",
+                        targetMuscle: "心肺耐力 / 下肢输出",
+                        tip: "这一段是主菜，稳住节奏，不要东一脚西一脚。",
+                        emojiIcon: "⚡",
+                        steps: [
+                            "坡度 12",
+                            "阻力 6",
+                            "保持持续输出，呼吸明显变重但还能控制动作"
+                        ],
+                        baseReps: "\(max(20, minutes - 20)) 分钟"
+                    ),
+                    FitnessAction(
+                        name: "椭圆机冷却段",
+                        targetMuscle: "主动恢复",
+                        tip: "最后不是摆烂，是慢慢把身体接回来。",
+                        emojiIcon: "🍃",
+                        steps: [
+                            "坡度 10",
+                            "阻力 2",
+                            "放慢节奏，让心率回落"
+                        ],
+                        baseReps: "10 分钟"
+                    )
+                ]
+                
+            case "跑步机":
+                return [
+                    FitnessAction(
+                        name: "跑步机热身段",
+                        targetMuscle: "心肺唤醒",
+                        tip: "先把步伐走顺，别一上来就追速度。",
+                        emojiIcon: "🏃‍♀️",
+                        steps: [
+                            "坡度 2",
+                            "轻松快走或慢跑",
+                            "让脚步和呼吸进入状态"
+                        ],
+                        baseReps: "10 分钟"
+                    ),
+                    FitnessAction(
+                        name: "跑步机主训练段",
+                        targetMuscle: "下肢耐力 / 心肺挑战",
+                        tip: "主训练段要有训练感，但动作不能散。",
+                        emojiIcon: "🔥",
+                        steps: [
+                            "坡度 6 - 10",
+                            "速度提高到明显发热、微喘偏强",
+                            "保持步频稳定，不要扶太多"
+                        ],
+                        baseReps: "\(max(20, minutes - 20)) 分钟"
+                    ),
+                    FitnessAction(
+                        name: "跑步机冷却段",
+                        targetMuscle: "主动恢复",
+                        tip: "慢慢降下来，收尾要体面。",
+                        emojiIcon: "🍃",
+                        steps: [
+                            "坡度 0 - 2",
+                            "轻松走",
+                            "呼吸恢复平稳"
+                        ],
+                        baseReps: "10 分钟"
+                    )
+                ]
+                
+            case "动感单车":
+                return [
+                    FitnessAction(
+                        name: "单车热身段",
+                        targetMuscle: "心肺唤醒",
+                        tip: "先把腿转顺，再谈输出。",
+                        emojiIcon: "🚴",
+                        steps: [
+                            "低阻力",
+                            "轻松踩踏",
+                            "髋和膝盖慢慢热起来"
+                        ],
+                        baseReps: "10 分钟"
+                    ),
+                    FitnessAction(
+                        name: "单车主训练段",
+                        targetMuscle: "心肺耐力 / 大腿输出",
+                        tip: "阻力要够，但别把动作踩散。",
+                        emojiIcon: "⚡",
+                        steps: [
+                            "中高阻力",
+                            "保持稳定踏频",
+                            "进入持续输出状态"
+                        ],
+                        baseReps: "\(max(20, minutes - 20)) 分钟"
+                    ),
+                    FitnessAction(
+                        name: "单车冷却段",
+                        targetMuscle: "主动恢复",
+                        tip: "慢慢松下来，不要突然停。",
+                        emojiIcon: "🍃",
+                        steps: [
+                            "低阻力",
+                            "轻松踩踏",
+                            "让呼吸逐渐恢复"
+                        ],
+                        baseReps: "10 分钟"
+                    )
+                ]
+                
+            case "爬楼机":
+                return [
+                    FitnessAction(
+                        name: "爬楼机热身段",
+                        targetMuscle: "臀腿唤醒",
+                        tip: "先找到节奏，不要前面就把腿炸掉。",
+                        emojiIcon: "🧗‍♀️",
+                        steps: [
+                            "低速热身",
+                            "轻扶扶手",
+                            "核心收紧，步伐稳定"
+                        ],
+                        baseReps: "8 分钟"
+                    ),
+                    FitnessAction(
+                        name: "爬楼机主训练段",
+                        targetMuscle: "臀腿耐力 / 心肺挑战",
+                        tip: "主训练段重点是持续，不是乱冲。",
+                        emojiIcon: "🔥",
+                        steps: [
+                            "中高速度",
+                            "步伐稳定向上",
+                            "感受臀腿持续发力"
+                        ],
+                        baseReps: "\(max(18, minutes - 16)) 分钟"
+                    ),
+                    FitnessAction(
+                        name: "爬楼机冷却段",
+                        targetMuscle: "主动恢复",
+                        tip: "慢下来，把腿救回来。",
+                        emojiIcon: "🍃",
+                        steps: [
+                            "低速恢复",
+                            "放慢呼吸",
+                            "逐渐结束"
+                        ],
+                        baseReps: "8 分钟"
+                    )
+                ]
+                
+            case "散步":
+                return [
+                    FitnessAction(
+                        name: "快走启动段",
+                        targetMuscle: "心肺唤醒",
+                        tip: "先走开，不要急。",
+                        emojiIcon: "🚶",
+                        steps: [
+                            "轻松走",
+                            "摆臂自然",
+                            "身体慢慢热起来"
+                        ],
+                        baseReps: "10 分钟"
+                    ),
+                    FitnessAction(
+                        name: "耐力快走段",
+                        targetMuscle: "低压燃脂 / 持续耐力",
+                        tip: "这一段重点是持续，不是拼命。",
+                        emojiIcon: "🌤️",
+                        steps: [
+                            "加快步频",
+                            "保持能说短句的速度",
+                            "如果在跑步机可用坡度 3 - 6"
+                        ],
+                        baseReps: "\(max(20, minutes - 20)) 分钟"
+                    ),
+                    FitnessAction(
+                        name: "散步收尾段",
+                        targetMuscle: "主动恢复",
+                        tip: "把状态慢慢降下来。",
+                        emojiIcon: "🍃",
+                        steps: [
+                            "逐渐放慢",
+                            "放松肩膀",
+                            "恢复平稳呼吸"
+                        ],
+                        baseReps: "10 分钟"
+                    )
+                ]
+                
+            case "游泳":
+                return [
+                    FitnessAction(
+                        name: "游泳热身段",
+                        targetMuscle: "全身唤醒",
+                        tip: "先把呼吸和划水节奏找顺。",
+                        emojiIcon: "🏊‍♀️",
+                        steps: [
+                            "轻松游",
+                            "动作完整",
+                            "不要急着求快"
+                        ],
+                        baseReps: "10 分钟"
+                    ),
+                    FitnessAction(
+                        name: "游泳主训练段",
+                        targetMuscle: "心肺耐力 / 全身协调",
+                        tip: "主训练段保持节奏感，不要乱扑腾。",
+                        emojiIcon: "💦",
+                        steps: [
+                            "连续游或分段游",
+                            "保持稳定呼吸",
+                            "每一趟动作尽量完整"
+                        ],
+                        baseReps: "\(max(20, minutes - 20)) 分钟"
+                    ),
+                    FitnessAction(
+                        name: "游泳放松段",
+                        targetMuscle: "主动恢复",
+                        tip: "最后轻松游，把心率降下来。",
+                        emojiIcon: "🍃",
+                        steps: [
+                            "轻松划水",
+                            "拉长呼吸",
+                            "慢慢结束"
+                        ],
+                        baseReps: "10 分钟"
+                    )
+                ]
+                
+            default:
+                return [
+                    FitnessAction(
+                        name: "\(selectedCardioName) 热身段",
+                        targetMuscle: "心肺唤醒",
+                        tip: "先热起来。",
+                        emojiIcon: "🌿",
+                        steps: ["轻松开始", "找呼吸", "找节奏"],
+                        baseReps: "10 分钟"
+                    ),
+                    FitnessAction(
+                        name: "\(selectedCardioName) 主训练段",
+                        targetMuscle: "心肺挑战",
+                        tip: "进入主训练状态。",
+                        emojiIcon: "⚡",
+                        steps: ["提高强度", "保持输出", "动作稳定"],
+                        baseReps: "\(max(20, minutes - 20)) 分钟"
+                    ),
+                    FitnessAction(
+                        name: "\(selectedCardioName) 冷却段",
+                        targetMuscle: "主动恢复",
+                        tip: "慢慢收尾。",
+                        emojiIcon: "🍃",
+                        steps: ["降低强度", "恢复呼吸", "完成训练"],
+                        baseReps: "10 分钟"
+                    )
+                ]
             }
         }
     }
