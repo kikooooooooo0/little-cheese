@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - ✨ 动作数据模型（新增独立计量单位 baseReps）
+// MARK: - ✨ 动作数据模型
 struct FitnessAction: Identifiable, Hashable {
     let id = UUID()
     var name: String
@@ -9,7 +9,7 @@ struct FitnessAction: Identifiable, Hashable {
     let emojiIcon: String
     let steps: [String]
     var activeRest: String? = nil
-    var baseReps: String = "" // ✨ 比如："8-12次", "40-60秒"
+    var baseReps: String = ""
 }
 
 // MARK: - 训练阶段模型
@@ -36,7 +36,7 @@ struct FitnessCoachView: View {
     @State private var selectedActionDetail: FitnessAction?
     
     let equips = ["🛋️ 宿舍徒手", "🎒 哑铃弹力带", "🏢 健身房"]
-    let parts = ["🎲 帮我决定", "🦋 挺拔背部", "🍑 力量下肢", "🍫 核心收紧"]
+    let parts = ["🎲 帮我决定", "🦋 挺拔背部", "🍑 力量下肢", "🛡️ 稳定核心"] // ✨ 改了名字，强调“稳定”
     let cardioTypes = ["🧗‍♀️ 爬楼机", "🛸 椭圆机", "🏃‍♀️ 跑步机", "🏊‍♀️ 游泳", "🚴 动感单车", "🚶 散步"]
 
     var totalMinutes: Int { Int(strengthMinutes + cardioMinutes) }
@@ -47,7 +47,7 @@ struct FitnessCoachView: View {
                 // 1. 顶部标题
                 VStack(spacing: 8) {
                     Text("智能运动引擎 🧠").font(.largeTitle.bold()).foregroundColor(.lcText)
-                    Text("精准动作容量：告别无脑 3x12")
+                    Text("精准容量与肌群平衡：打造最强 3D 核心")
                         .font(.subheadline).foregroundColor(.lcTextSecondary).multilineTextAlignment(.center)
                 }
                 .padding(.top, 20)
@@ -109,9 +109,7 @@ struct FitnessCoachView: View {
                 }
                 
                 // 4. 生成按钮
-                Button {
-                    generateRoutine()
-                } label: {
+                Button { generateRoutine() } label: {
                     HStack {
                         Image(systemName: "cpu")
                         Text(totalMinutes == 0 ? "请先拉动时间条 ⏱️" : (generatedPhases.isEmpty ? "启动智能训练引擎" : "重新智能生成"))
@@ -168,21 +166,15 @@ struct FitnessCoachView: View {
         .sheet(item: $selectedActionDetail) { action in ActionDetailSheet(action: action) }
     }
     
-    // MARK: - ✨ UI 子组件：升级版卡片 (精准展示次数)
+    // MARK: - UI 子组件：卡片
     private func actionCard(for action: FitnessAction) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
                 Text(action.emojiIcon).font(.title3)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(action.name)
-                        .font(.system(.headline, design: .rounded))
-                        .foregroundColor(action.name.contains("汗水") ? .lcAccentBlue : .lcText)
-                    
-                    // ✨ 把每组的精准次数单独高亮出来，不挤在名字里
+                    Text(action.name).font(.system(.headline, design: .rounded)).foregroundColor(action.name.contains("汗水") ? .lcAccentBlue : .lcText)
                     if !action.baseReps.isEmpty {
-                        Text(action.baseReps)
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundColor(.lcAccentBlue)
+                        Text(action.baseReps).font(.system(size: 14, weight: .bold, design: .rounded)).foregroundColor(.lcAccentBlue)
                     }
                 }
                 Spacer()
@@ -210,7 +202,7 @@ struct FitnessCoachView: View {
         .shadow(color: .black.opacity(0.02), radius: 5, y: 2)
     }
     
-    // MARK: - 🧠 核心：智能平衡引擎
+    // MARK: - 🧠 核心逻辑
     private func generateRoutine() {
         withAnimation(.spring()) { isGenerating = true }
         #if os(iOS)
@@ -220,7 +212,6 @@ struct FitnessCoachView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             var newPhases: [WorkoutPhase] = []
             
-            // 💡 智能计算主训练组数
             let targetSets = strengthMinutes >= 40 ? 4 : (strengthMinutes >= 20 ? 3 : 2)
             
             // ---- PART 1: 热身 ----
@@ -229,7 +220,7 @@ struct FitnessCoachView: View {
             for i in 0..<min(2, wPool.count) {
                 if totalMinutes <= 20 && i == 1 { break }
                 var action = wPool[i]
-                action.baseReps = "1 组 × \(action.baseReps)" // 热身通常只做1组
+                action.baseReps = "1 组 × \(action.baseReps)"
                 warmupActions.append(action)
             }
             newPhases.append(WorkoutPhase(title: "Part 1 🔥 针对性热身", subtitle: "唤醒神经，预防受伤", actions: warmupActions))
@@ -243,7 +234,6 @@ struct FitnessCoachView: View {
                 
                 for i in 0..<min(actionCount, balancedPool.count) {
                     var action = balancedPool[i]
-                    // ✨ 魔法拼接：目标组数 + 动作专属的训练容量
                     action.baseReps = "\(targetSets) 组 × \(action.baseReps)"
                     action.activeRest = restPool[i % restPool.count]
                     mainActions.append(action)
@@ -251,14 +241,12 @@ struct FitnessCoachView: View {
                 newPhases.append(WorkoutPhase(title: "Part 2 💪 核心容量", subtitle: "动作已做肌群平衡处理", actions: mainActions))
             }
             
-            // ---- PART 2.5: 有氧冲击 ----
+            // ---- PART 2.5: 有氧 ----
             if cardioMinutes > 0 {
                 let cardioName = cardioTypes[selectedCardio].components(separatedBy: " ").last ?? ""
                 let cardioAction = FitnessAction(
-                    name: "去 \(cardioName) 挥洒汗水！",
-                    targetMuscle: "心肺燃脂", tip: "保持微喘但能说话的心率", emojiIcon: "💦",
-                    steps: ["慢速热身 3 分钟", "保持稳定配速", "最后 3 分钟慢慢降速"],
-                    baseReps: "\(Int(cardioMinutes)) 分钟" // 有氧专属单位
+                    name: "去 \(cardioName) 挥洒汗水！", targetMuscle: "心肺燃脂", tip: "保持微喘但能说话的心率", emojiIcon: "💦",
+                    steps: ["慢速热身 3 分钟", "保持稳定配速", "最后 3 分钟慢慢降速"], baseReps: "\(Int(cardioMinutes)) 分钟"
                 )
                 newPhases.append(WorkoutPhase(title: "Part 2.5 🏃‍♀️ 燃脂心肺", subtitle: "榨干最后的脂肪", actions: [cardioAction]))
             }
@@ -269,7 +257,7 @@ struct FitnessCoachView: View {
             for i in 0..<min(2, cPool.count) {
                 if totalMinutes <= 30 && i == 1 { break }
                 var action = cPool[i]
-                action.baseReps = "1 组 × \(action.baseReps)" // 放松拉伸只做1组
+                action.baseReps = "1 组 × \(action.baseReps)"
                 cooldownActions.append(action)
             }
             newPhases.append(WorkoutPhase(title: "Part 3 🧘‍♀️ 靶向拉伸", subtitle: "哪里酸痛拉哪里", actions: cooldownActions))
@@ -281,7 +269,7 @@ struct FitnessCoachView: View {
         }
     }
     
-    // MARK: - 🧠 引擎数据层 (每个动作都配上了最科学的次数)
+    // MARK: - 🧠 引擎数据层
     private func getSmartWarmupPool(part: Int) -> [FitnessAction] {
         if part == 2 {
             return [
@@ -310,7 +298,7 @@ struct FitnessCoachView: View {
         } else {
             return [
                 FitnessAction(name: "腹部眼镜蛇拉伸", targetMuscle: "腹直肌", tip: "骨盆贴地，肩膀下沉", emojiIcon: "🐍", steps: ["趴在垫子上，双手将上半身撑起"], baseReps: "30 秒"),
-                FitnessAction(name: "全身大字形放松", targetMuscle: "全身神经", tip: "闭上眼睛，什么都不想", emojiIcon: "🧘‍♂️", steps: ["平躺在垫子上，手脚自然分开"], baseReps: "1 分钟")
+                FitnessAction(name: "仰卧脊柱扭转放松", targetMuscle: "下背部", tip: "肩膀不要离开地面", emojiIcon: "🥨", steps: ["仰卧，单腿屈膝跨过身体对侧", "手臂向反方向展开，目光看反方向手指"], baseReps: "每侧 45 秒")
             ].shuffled()
         }
     }
@@ -319,7 +307,7 @@ struct FitnessCoachView: View {
         return ["腿下击掌 20 次", "靠墙静蹲休息 30 秒", "站立抱膝走 10 步", "慢速高抬腿 20 次", "深呼吸，喝两口水！", "核心收紧站立 20 秒"]
     }
     
-    // 👑 终极强制平衡输出组合（精准次数版）
+    // 👑 终极强制平衡输出组合（✨ 重构：最强3D核心模块）
     private func getSmartBalancedPool(equip: Int, part: Int) -> [FitnessAction] {
         var pool: [FitnessAction] = []
         
@@ -345,10 +333,18 @@ struct FitnessCoachView: View {
                 pool.append(FitnessAction(name: "哑铃俯身划船", targetMuscle: "中背部 (水平拉)", tip: "背部必须平直", emojiIcon: "🚣", steps: ["臀部后推，上身前倾，哑铃拉向小腹"], baseReps: "10 - 12 次"))
                 pool.append(FitnessAction(name: "弹力带面拉", targetMuscle: "肩后束", tip: "拉向脸部，手臂呈W型", emojiIcon: "😎", steps: ["高度与头齐平，向后挤压肩胛骨"], baseReps: "15 - 20 次"))
             }
-        } else { // 核心
-            pool.append(FitnessAction(name: "平板支撑", targetMuscle: "整体核心", tip: "切忌塌腰", emojiIcon: "🪵", steps: ["收紧肚子，身体绷直像木板"], baseReps: "40 - 60 秒"))
-            pool.append(FitnessAction(name: "死虫子 (Deadbug)", targetMuscle: "深层核心", tip: "下背部必须死死贴住地面", emojiIcon: "🪲", steps: ["对侧手脚伸展，不碰地面"], baseReps: "每侧 10 次"))
-            pool.append(FitnessAction(name: "负重俄罗斯挺身", targetMuscle: "腹外斜肌", tip: "转动胸椎而不是手臂", emojiIcon: "🌪️", steps: ["身体后倾45度，左右扭转"], baseReps: "每侧 12 次"))
+        } else { // ✨✨✨ 全新重构：核心四大稳定支柱 ✨✨✨
+            if equip == 2 || equip == 1 { // 有阻力设备 (哑铃/弹力带/健身房)
+                pool.append(FitnessAction(name: "死虫子 (Deadbug)", targetMuscle: "抗伸展 / 骨盆控制", tip: "最重要的一点：下背部必须死死钉在地面上！", emojiIcon: "🪲", steps: ["仰卧，双手伸直指天，双腿屈膝90度抬起", "下背部用力压实地面，不能留缝隙", "呼气，同时缓慢伸直对侧手脚（绝不碰地），吸气收回"], baseReps: "每侧 10 - 12 次"))
+                pool.append(FitnessAction(name: "帕洛夫推 (Pallof Press)", targetMuscle: "抗旋转", tip: "抵抗阻力不要让身体转动", emojiIcon: "🛡️", steps: ["侧对绳索或弹力带站立，双手将把手拉至胸前", "核心死死收紧抵抗侧向拉力，双手缓慢向前推直", "停顿1秒后，控制身体不转动地收回"], baseReps: "每侧 12 - 15 次"))
+                pool.append(FitnessAction(name: "侧支撑 (Side Plank)", targetMuscle: "抗侧屈 / 腹斜肌", tip: "把地面推开，身体像一块钢板", emojiIcon: "📐", steps: ["手肘在肩膀正下方撑地，双腿伸直并拢", "发力将身体撑起，不要塌腰撅屁股", "保持呼吸均匀，感觉下侧腰部在收紧发力"], baseReps: "每侧 30 - 45 秒"))
+                pool.append(FitnessAction(name: "中空静力支撑 (Hollow Hold)", targetMuscle: "深层抗伸展", tip: "下背必须压实地面！如果腰酸就把腿抬高一点", emojiIcon: "🥣", steps: ["仰卧，腰部死死压平地面", "双手双脚伸直，并同时微微抬离地面", "保持腹部收紧颤抖，绝不憋气"], baseReps: "30 - 45 秒"))
+            } else { // 纯徒手
+                pool.append(FitnessAction(name: "死虫子 (Deadbug)", targetMuscle: "抗伸展 / 骨盆控制", tip: "最重要的一点：下背部必须死死钉在地面上！", emojiIcon: "🪲", steps: ["仰卧，双手伸直指天，双腿屈膝90度抬起", "下背部用力压实地面，不能留缝隙", "呼气，同时缓慢伸直对侧手脚（绝不碰地），吸气收回"], baseReps: "每侧 10 - 12 次"))
+                pool.append(FitnessAction(name: "鸟狗式 (Bird Dog)", targetMuscle: "多裂肌 / 抗旋转", tip: "想象背上放着一杯水，绝对不能洒", emojiIcon: "🐕", steps: ["四足跪姿在垫子上，保持脊柱中立（不塌腰）", "对侧的手脚向前后【延伸】（注意是前后延伸，不是一味往高抬）", "收紧核心保持身体绝对平稳，不要左摇右晃"], baseReps: "每侧 10 - 12 次"))
+                pool.append(FitnessAction(name: "侧支撑 (Side Plank)", targetMuscle: "抗侧屈 / 腹斜肌", tip: "把地面推开，身体像一块钢板", emojiIcon: "📐", steps: ["手肘在肩膀正下方撑地，双腿伸直并拢", "发力将身体撑起，不要塌腰撅屁股", "保持呼吸均匀，感觉下侧腰部在收紧发力"], baseReps: "每侧 30 - 45 秒"))
+                pool.append(FitnessAction(name: "中空静力支撑 (Hollow Hold)", targetMuscle: "深层抗伸展", tip: "下背必须压实地面！如果腰酸就把腿抬高一点", emojiIcon: "🥣", steps: ["仰卧，腰部死死压平地面", "双手双脚伸直，并同时微微抬离地面", "保持腹部收紧颤抖，绝不憋气"], baseReps: "30 - 45 秒"))
+            }
         }
         
         return pool
@@ -383,7 +379,7 @@ struct ActionDetailSheet: View {
                 .padding(.bottom, 40)
             }
             .background(Color.lcBackground.ignoresSafeArea())
-            .navigationTitle(action.name)
+            .navigationTitle(action.name.components(separatedBy: " (").first ?? action.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() } } }
         }
