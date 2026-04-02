@@ -323,15 +323,112 @@ struct FitnessCoachView: View {
                 pool.append(FitnessAction(name: "哑铃负重臀桥", targetMuscle: "臀大肌 (臀)", tip: "把哑铃放在小腹上方", emojiIcon: "🍑", steps: ["脚跟踩地，臀部发力向上顶"], baseReps: "12 - 15 次"))
                 pool.append(FitnessAction(name: "交替箭步蹲", targetMuscle: "单侧臀腿", tip: "下蹲时前后腿呈90度", emojiIcon: "🚶‍♀️", steps: ["保持上身直立，重心在两腿中间"], baseReps: "每侧 10 次"))
             }
-        } else if part == 1 { // 背部
+        } else if part == 1 { // 背部：垂直拉 + 水平拉 + 肩胛控制 + 后束补偿
             if equip == 2 {
-                pool.append(FitnessAction(name: "器械高位下拉", targetMuscle: "背阔肌 (垂直拉)", tip: "不要过度后仰，拉向锁骨", emojiIcon: "🏗️", steps: ["大腿卡紧，背部发力带动手臂"], baseReps: "10 - 12 次"))
-                pool.append(FitnessAction(name: "坐姿划船", targetMuscle: "中背部 (水平拉)", tip: "肩胛骨向后收缩夹紧", emojiIcon: "🚣", steps: ["挺胸收腹，手肘贴着肋骨向后拉"], baseReps: "10 - 12 次"))
-                pool.append(FitnessAction(name: "器械反向飞鸟", targetMuscle: "肩后束", tip: "改善圆肩驼背神器", emojiIcon: "🦋", steps: ["手臂微屈，向后发力打开"], baseReps: "15 - 20 次"))
+                pool.append(FitnessAction(
+                    name: "器械高位下拉",
+                    targetMuscle: "背阔肌 (垂直拉)",
+                    tip: "不要过度后仰，先沉肩，再把手肘向下拉",
+                    emojiIcon: "🏗️",
+                    steps: [
+                        "坐稳并固定大腿，核心轻轻收紧",
+                        "先想象肩膀远离耳朵，再开始下拉",
+                        "把横杆拉向锁骨附近，控制还原"
+                    ],
+                    baseReps: "10 - 12 次"
+                ))
+                
+                pool.append(FitnessAction(
+                    name: "坐姿划船",
+                    targetMuscle: "中背部 (水平拉)",
+                    tip: "不是用手拉，是用肩胛骨向后收",
+                    emojiIcon: "🚣",
+                    steps: [
+                        "挺胸坐稳，脊柱保持中立",
+                        "先轻轻后收肩胛，再带动手肘往后",
+                        "停顿 1 秒，慢慢放回"
+                    ],
+                    baseReps: "10 - 12 次"
+                ))
+                
+                pool.append(FitnessAction(
+                    name: "墙天使 / 墙滑",
+                    targetMuscle: "肩胛上旋控制",
+                    tip: "腰不要乱拱，重点不是抬高，而是贴墙滑动",
+                    emojiIcon: "🪽",
+                    steps: [
+                        "背靠墙站立，后脑勺、上背尽量贴墙",
+                        "手臂摆成 W 形，慢慢向上滑到 Y 形",
+                        "全程保持肋骨别外翻，感受肩胛顺畅上旋"
+                    ],
+                    baseReps: "10 - 12 次"
+                ))
+                
+                pool.append(FitnessAction(
+                    name: "器械反向飞鸟",
+                    targetMuscle: "肩后束 / 姿态补偿",
+                    tip: "动作不用太重，重点是打开胸口、稳定肩胛",
+                    emojiIcon: "🦋",
+                    steps: [
+                        "双手握住把手，肩膀下沉",
+                        "手臂微屈，向两侧打开",
+                        "顶端停顿 1 秒，再慢慢回位"
+                    ],
+                    baseReps: "15 - 20 次"
+                ))
+                
             } else {
-                pool.append(FitnessAction(name: "弹力带高位下拉", targetMuscle: "背阔肌 (垂直拉)", tip: "找个高点固定弹力带", emojiIcon: "⚡", steps: ["跪姿或站姿，将弹力带拉向胸口"], baseReps: "12 - 15 次"))
-                pool.append(FitnessAction(name: "哑铃俯身划船", targetMuscle: "中背部 (水平拉)", tip: "背部必须平直", emojiIcon: "🚣", steps: ["臀部后推，上身前倾，哑铃拉向小腹"], baseReps: "10 - 12 次"))
-                pool.append(FitnessAction(name: "弹力带面拉", targetMuscle: "肩后束", tip: "拉向脸部，手臂呈W型", emojiIcon: "😎", steps: ["高度与头齐平，向后挤压肩胛骨"], baseReps: "15 - 20 次"))
+                pool.append(FitnessAction(
+                    name: "弹力带高位下拉",
+                    targetMuscle: "背阔肌 (垂直拉)",
+                    tip: "先沉肩再下拉，不要耸肩硬拽",
+                    emojiIcon: "⚡",
+                    steps: [
+                        "把弹力带固定在高点",
+                        "先让肩膀远离耳朵，再把手肘向下带",
+                        "拉到胸口附近后慢慢还原"
+                    ],
+                    baseReps: "12 - 15 次"
+                ))
+                
+                pool.append(FitnessAction(
+                    name: "哑铃俯身划船",
+                    targetMuscle: "中背部 (水平拉)",
+                    tip: "背部必须平直，手肘朝髋部方向拉",
+                    emojiIcon: "🚣",
+                    steps: [
+                        "臀部后推，上身前倾，核心收紧",
+                        "哑铃向小腹两侧拉回",
+                        "停顿一下，控制下放"
+                    ],
+                    baseReps: "10 - 12 次"
+                ))
+                
+                pool.append(FitnessAction(
+                    name: "Y-T-W 肩胛唤醒",
+                    targetMuscle: "肩胛控制 / 下斜方肌",
+                    tip: "动作小一点没关系，重点是控制感，不是甩手",
+                    emojiIcon: "🪶",
+                    steps: [
+                        "俯身或趴姿，手臂依次做 Y、T、W 三个姿势",
+                        "每次抬起时想象肩胛向下向后稳定",
+                        "全程脖子放松，不要耸肩抢力"
+                    ],
+                    baseReps: "每种 8 - 10 次"
+                ))
+                
+                pool.append(FitnessAction(
+                    name: "弹力带面拉",
+                    targetMuscle: "肩后束 / 姿态补偿",
+                    tip: "拉向脸部，肘部打开，像摆出一个 W",
+                    emojiIcon: "😎",
+                    steps: [
+                        "弹力带固定在脸部高度",
+                        "双手向面部方向拉开，肩胛后收",
+                        "停顿 1 秒后慢慢还原"
+                    ],
+                    baseReps: "15 - 20 次"
+                ))
             }
         } else { // ✨✨✨ 全新重构：核心四大稳定支柱 ✨✨✨
             if equip == 2 || equip == 1 { // 有阻力设备 (哑铃/弹力带/健身房)
