@@ -35,10 +35,12 @@ struct FitnessCoachView: View {
         @State private var selectedPart: Int = 0
         @State private var selectedCardio: Int = 1
         
-        // 🆕 路线A新增：状态管理
-        @State private var trainingLevel: Int = 0 // 0:🐣新手, 1:🐥中级, 2:🦅高手
-        @State private var cardioGoal: Int = 0    // 0:🔥燃脂, 1:❤️心肺, 2:⚡冲刺
-        
+    // 🆕 路线A新增：状态管理
+    @State private var trainingLevel: Int = 0 // 0:🐣新手, 1:🐥中级, 2:🦅高手
+    @State private var cardioGoal: Int = 0    // 0:🔥燃脂, 1:❤️心肺, 2:⚡冲刺
+
+    // 🆕 第一步：总训练目标
+    @State private var trainingGoal: Int = 1  // 0:🔥减脂燃能 1:🍑塑形线条 2:💪增肌强化 3:🌿恢复减压
         @State private var generatedPhases: [WorkoutPhase] = []
         @State private var isGenerating: Bool = false
     @State private var selectedActionDetail: FitnessAction?
@@ -87,6 +89,18 @@ struct FitnessCoachView: View {
                                 if totalMinutes > 0 {
                                     VStack(spacing: 24) {
                                         
+                                        // 🆕 第一步：训练目标 (全局适用)
+                                        VStack(alignment: .leading, spacing: 16) {
+                                            Text("🎯 这次训练更想要：").font(.headline).foregroundColor(.lcTextSecondary)
+                                            Picker("训练目标", selection: $trainingGoal) {
+                                                Text("🔥 减脂").tag(0)
+                                                Text("🍑 塑形").tag(1)
+                                                Text("💪 增肌").tag(2)
+                                                Text("🌿 恢复").tag(3)
+                                            }
+                                            .pickerStyle(.segmented)
+                                        }
+
                                         // 🆕 路线A新增：训练经验等级 (全局适用)
                                         VStack(alignment: .leading, spacing: 16) {
                                             Text("🏅 你的训练经验：").font(.headline).foregroundColor(.lcTextSecondary)
@@ -94,9 +108,10 @@ struct FitnessCoachView: View {
                                                 Text("🐣 新手").tag(0)
                                                 Text("🐥 中级").tag(1)
                                                 Text("🦅 高手").tag(2)
-                                            }.pickerStyle(.segmented)
+                                            }
+                                            .pickerStyle(.segmented)
                                         }
-                                        
+
                                         Divider().opacity(0.3)
                                         
                                         if strengthMinutes > 0 {
@@ -302,13 +317,55 @@ struct FitnessCoachView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 var newPhases: [WorkoutPhase] = []
                 
-                // 🆕 1. 容量控制：不再只看时间，还要看“训练等级(trainingLevel)”
+                // 🆕 1. 容量控制：时间 × 等级 × 训练目标
                 let baseSets = strengthMinutes >= 40 ? 4 : (strengthMinutes >= 20 ? 3 : 2)
-                // 新手组数打折，高手组数增加
-                let targetSets = trainingLevel == 0 ? min(baseSets, 2) : (trainingLevel == 1 ? baseSets : baseSets + 1)
-                
-                // 🆕 2. 强度控制：根据等级给出 RPE（主观疲劳度）建议
-                let rpeGuide = trainingLevel == 0 ? "🐣 RPE 6-7 (做完还能做3个)" : (trainingLevel == 1 ? "🐥 RPE 8 (做完还能做1-2个)" : "🦅 RPE 9-10 (接近力竭极限)")
+
+                // 先按训练经验修正
+                let levelAdjustedSets = trainingLevel == 0
+                ? min(baseSets, 2)
+                : (trainingLevel == 1 ? baseSets : baseSets + 1)
+
+                // 再按训练目标修正
+                let targetSets: Int
+                switch trainingGoal {
+                case 0: // 🔥减脂：容量略高，节奏更密
+                    targetSets = min(levelAdjustedSets + 1, 5)
+                case 1: // 🍑塑形：中等容量最稳
+                    targetSets = levelAdjustedSets
+                case 2: // 💪增肌：保证足够组数
+                    targetSets = min(levelAdjustedSets + 1, 5)
+                case 3: // 🌿恢复：主动减量
+                    targetSets = max(levelAdjustedSets - 1, 1)
+                default:
+                    targetSets = levelAdjustedSets
+                }
+
+                // 🆕 2. 强度控制：等级 × 目标共同决定提示
+                let rpeGuide: String
+                switch trainingGoal {
+                case 0: // 减脂
+                    rpeGuide = trainingLevel == 0
+                    ? "🔥 RPE 6-7（微喘，组间休息短一点）"
+                    : (trainingLevel == 1
+                       ? "🔥 RPE 7-8（持续输出，别划水）"
+                       : "🔥 RPE 8（有训练感，但别做崩）")
+                case 1: // 塑形
+                    rpeGuide = trainingLevel == 0
+                    ? "🍑 RPE 6-7（动作标准最重要）"
+                    : (trainingLevel == 1
+                       ? "🍑 RPE 7-8（控制发力和节奏）"
+                       : "🍑 RPE 8（顶峰收缩要明显）")
+                case 2: // 增肌
+                    rpeGuide = trainingLevel == 0
+                    ? "💪 RPE 7（保留2-3次余力）"
+                    : (trainingLevel == 1
+                       ? "💪 RPE 8（保留1-2次余力）"
+                       : "💪 RPE 9（接近力竭，但动作别散）")
+                case 3: // 恢复
+                    rpeGuide = "🌿 RPE 5-6（轻中强度，身体找感觉）"
+                default:
+                    rpeGuide = "🐥 RPE 7-8（稳定完成）"
+                }
                 
                 // ---- PART 1: 热身 ----
                 var warmupActions: [FitnessAction] = []
@@ -339,19 +396,34 @@ struct FitnessCoachView: View {
                         action.priority = 2
                         mainActions.append(action)
                     }
-                    newPhases.append(WorkoutPhase(title: "Part 2 💪 核心容量", subtitle: "动作已做肌群平衡处理", actions: mainActions))
-                }
                 
-                // ---- PART 2.5: 有氧 ----
-                if cardioMinutes > 0 {
                     let cardioName = cardioTypes[selectedCardio].components(separatedBy: " ").last ?? ""
                     let cardioActionsRaw = getSmartCardioActions(
                         minutes: Int(cardioMinutes),
                         selectedCardioName: cardioName
                     )
                     
-                    // 🆕 3. 有氧目标：根据 cardioGoal 注入明确的心率/状态指导
-                    let cardioIntensity = cardioGoal == 0 ? "🔥燃脂: 心率120-135 (能连贯说话)" : (cardioGoal == 1 ? "❤️心肺: 心率140-160 (说话微喘)" : "⚡冲刺: 间歇爆发 (无法说话)")
+                    // 🆕 3. 有氧目标：cardioGoal 为主，trainingGoal 为辅
+                    let cardioIntensity: String
+
+                    if trainingGoal == 3 {
+                        // 恢复日：哪怕选了有氧，也优先轻一点
+                        cardioIntensity = "🌿恢复: 心率110-125（轻松顺气，越做越舒服）"
+                    } else if trainingGoal == 2 && cardioGoal == 2 {
+                        // 增肌日不建议再拉太猛冲刺
+                        cardioIntensity = "💪增肌保护: 心率125-140（少量有氧，别影响恢复）"
+                    } else {
+                        switch cardioGoal {
+                        case 0:
+                            cardioIntensity = "🔥燃脂: 心率120-135（能连贯说话）"
+                        case 1:
+                            cardioIntensity = "❤️心肺: 心率140-160（说话微喘）"
+                        case 2:
+                            cardioIntensity = "⚡冲刺: 间歇爆发（无法完整说话）"
+                        default:
+                            cardioIntensity = "❤️心肺: 稳定输出"
+                        }
+                    }
 
                     let cardioSubtitle: String
                     if cardioMinutes <= 15 {
@@ -408,18 +480,46 @@ struct FitnessCoachView: View {
         }
     
     
-    private func finishAndRecord() {
-        let todayStr = AppState.df.string(from: Date())
-        var recordText = "运动了 \(totalMinutes) 分钟"
-        if strengthMinutes > 0 && cardioMinutes > 0 { recordText = "\(equips[selectedEquip].components(separatedBy: " ").last ?? "")无氧 + \(cardioTypes[selectedCardio].components(separatedBy: " ").last ?? "")有氧" }
-        else if strengthMinutes > 0 { recordText = "纯力量：练\(parts[selectedPart].components(separatedBy: " ").last ?? "")" }
-        else if cardioMinutes > 0 { recordText = "纯有氧：\(cardioTypes[selectedCardio].components(separatedBy: " ").last ?? "")" }
-        
-        state.addTodayTask(title: "✅ 极爽多巴胺：\(recordText)")
-        if let idx = state.weightRecords.firstIndex(where: { AppState.df.string(from: $0.date) == todayStr }) { state.weightRecords[idx].exerciseDescription = recordText }
-        else { state.weightRecords.append(WeightRecord(date: Date(), weight: state.weightRecords.last?.weight ?? 0.0, didPoop: false, exerciseDescription: recordText)) }
-        dismiss()
-    }
+            private func finishAndRecord() {
+                let todayStr = AppState.df.string(from: Date())
+
+                let goalText = {
+                    switch trainingGoal {
+                    case 0: return "减脂"
+                    case 1: return "塑形"
+                    case 2: return "增肌"
+                    case 3: return "恢复"
+                    default: return "训练"
+                    }
+                }()
+
+                var recordText = "运动了 \(totalMinutes) 分钟"
+
+                if strengthMinutes > 0 && cardioMinutes > 0 {
+                    recordText = "\(goalText)：\(equips[selectedEquip].components(separatedBy: " ").last ?? "")无氧 + \(cardioTypes[selectedCardio].components(separatedBy: " ").last ?? "")有氧"
+                } else if strengthMinutes > 0 {
+                    recordText = "\(goalText)：纯力量，练\(parts[selectedPart].components(separatedBy: " ").last ?? "")"
+                } else if cardioMinutes > 0 {
+                    recordText = "\(goalText)：纯有氧，\(cardioTypes[selectedCardio].components(separatedBy: " ").last ?? "")"
+                }
+
+                state.addTodayTask(title: "✅ 极爽多巴胺：\(recordText)")
+
+                if let idx = state.weightRecords.firstIndex(where: { AppState.df.string(from: $0.date) == todayStr }) {
+                    state.weightRecords[idx].exerciseDescription = recordText
+                } else {
+                    state.weightRecords.append(
+                        WeightRecord(
+                            date: Date(),
+                            weight: state.weightRecords.last?.weight ?? 0.0,
+                            didPoop: false,
+                            exerciseDescription: recordText
+                        )
+                    )
+                }
+
+                dismiss()
+            }
 }
 
 // 弹窗动作详解
