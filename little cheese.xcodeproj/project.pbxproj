@@ -29,6 +29,7 @@
 				FitnessACSMView.swift,
 				FitnessBlindBoxView.swift,
 				FitnessCoachView.swift,
+				FitnessData.swift,
 				GoalsView.swift,
 				InboxView.swift,
 				JournalListView.swift,
