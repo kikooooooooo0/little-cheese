@@ -11,6 +11,10 @@ struct FitnessAction: Identifiable, Hashable {
     var activeRest: String? = nil
     var baseReps: String = ""
     var quickStats: [String] = []
+    
+    // 🆕 路线A新增：专业维度
+    var intensity: String? = nil    // RPE或心率建议
+    var priority: Int = 2            // 优先级：1(复合), 2(辅助), 3(孤立/核心)
 }
 // MARK: - 训练阶段模型
 struct WorkoutPhase: Identifiable {
@@ -28,11 +32,15 @@ struct FitnessCoachView: View {
     @State private var cardioMinutes: Double = 0
     
     @State private var selectedEquip: Int = 0
-    @State private var selectedPart: Int = 0
-    @State private var selectedCardio: Int = 1
-    
-    @State private var generatedPhases: [WorkoutPhase] = []
-    @State private var isGenerating: Bool = false
+        @State private var selectedPart: Int = 0
+        @State private var selectedCardio: Int = 1
+        
+        // 🆕 路线A新增：状态管理
+        @State private var trainingLevel: Int = 0 // 0:🐣新手, 1:🐥中级, 2:🦅高手
+        @State private var cardioGoal: Int = 0    // 0:🔥燃脂, 1:❤️心肺, 2:⚡冲刺
+        
+        @State private var generatedPhases: [WorkoutPhase] = []
+        @State private var isGenerating: Bool = false
     @State private var selectedActionDetail: FitnessAction?
     
     let equips = ["🛋️ 宿舍徒手", "🎒 哑铃弹力带", "🏢 健身房"]
@@ -76,50 +84,84 @@ struct FitnessCoachView: View {
                 .shadow(color: .black.opacity(0.02), radius: 10, y: 5)
                 
                 // 3. 点单详情
-                if totalMinutes > 0 {
-                    VStack(spacing: 24) {
-                        if strengthMinutes > 0 {
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text("力量训练设定：").font(.headline).foregroundColor(.lcTextSecondary)
-                                Picker("装备", selection: $selectedEquip) { ForEach(0..<equips.count, id: \.self) { i in Text(equips[i]).tag(i) } }.pickerStyle(.segmented)
-                                Picker("部位", selection: $selectedPart) { ForEach(0..<parts.count, id: \.self) { i in Text(parts[i]).tag(i) } }.pickerStyle(.segmented)
-                            }
-                        }
-                        if strengthMinutes > 0 && cardioMinutes > 0 { Divider().opacity(0.3) }
-                        if cardioMinutes > 0 {
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text("有氧项目选择：").font(.headline).foregroundColor(.lcTextSecondary)
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 12) {
-                                        ForEach(0..<cardioTypes.count, id: \.self) { i in
-                                            Button { withAnimation(.spring()) { selectedCardio = i } } label: {
-                                                Text(cardioTypes[i]).font(.system(.subheadline, design: .rounded))
-                                                    .foregroundColor(selectedCardio == i ? .white : .lcText)
-                                                    .padding(.horizontal, 16).padding(.vertical, 10)
-                                                    .background(RoundedRectangle(cornerRadius: 12).fill(selectedCardio == i ? Color.lcAccentBlue : Color.lcBackground))
+                                if totalMinutes > 0 {
+                                    VStack(spacing: 24) {
+                                        
+                                        // 🆕 路线A新增：训练经验等级 (全局适用)
+                                        VStack(alignment: .leading, spacing: 16) {
+                                            Text("🏅 你的训练经验：").font(.headline).foregroundColor(.lcTextSecondary)
+                                            Picker("经验等级", selection: $trainingLevel) {
+                                                Text("🐣 新手").tag(0)
+                                                Text("🐥 中级").tag(1)
+                                                Text("🦅 高手").tag(2)
+                                            }.pickerStyle(.segmented)
+                                        }
+                                        
+                                        Divider().opacity(0.3)
+                                        
+                                        if strengthMinutes > 0 {
+                                            VStack(alignment: .leading, spacing: 16) {
+                                                Text("🏋️ 力量训练设定：").font(.headline).foregroundColor(.lcTextSecondary)
+                                                Picker("装备", selection: $selectedEquip) { ForEach(0..<equips.count, id: \.self) { i in Text(equips[i]).tag(i) } }.pickerStyle(.segmented)
+                                                Picker("部位", selection: $selectedPart) { ForEach(0..<parts.count, id: \.self) { i in Text(parts[i]).tag(i) } }.pickerStyle(.segmented)
+                                            }
+                                        }
+                                        
+                                        if strengthMinutes > 0 && cardioMinutes > 0 { Divider().opacity(0.3) }
+                                        
+                                        if cardioMinutes > 0 {
+                                            VStack(alignment: .leading, spacing: 16) {
+                                                Text("🏃‍♀️ 有氧项目选择：").font(.headline).foregroundColor(.lcTextSecondary)
+                                                ScrollView(.horizontal, showsIndicators: false) {
+                                                    HStack(spacing: 12) {
+                                                        ForEach(0..<cardioTypes.count, id: \.self) { i in
+                                                            Button { withAnimation(.spring()) { selectedCardio = i } } label: {
+                                                                Text(cardioTypes[i]).font(.system(.subheadline, design: .rounded))
+                                                                    .foregroundColor(selectedCardio == i ? .white : .lcText)
+                                                                    .padding(.horizontal, 16).padding(.vertical, 10)
+                                                                    .background(RoundedRectangle(cornerRadius: 12).fill(selectedCardio == i ? Color.lcAccentBlue : Color.lcBackground))
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                // 🆕 路线A新增：有氧目标
+                                                Text("🎯 有氧目标：").font(.headline).foregroundColor(.lcTextSecondary).padding(.top, 8)
+                                                Picker("有氧目标", selection: $cardioGoal) {
+                                                    Text("🔥 燃脂").tag(0)
+                                                    Text("❤️ 心肺").tag(1)
+                                                    Text("⚡ 冲刺").tag(2)
+                                                }.pickerStyle(.segmented)
                                             }
                                         }
                                     }
+                                    .padding(20).background(RoundedRectangle(cornerRadius: 24).fill(Color.lcCardBackground))
+                                    .shadow(color: .black.opacity(0.02), radius: 10, y: 5).transition(.opacity)
                                 }
-                            }
-                        }
-                    }
-                    .padding(20).background(RoundedRectangle(cornerRadius: 24).fill(Color.lcCardBackground))
-                    .shadow(color: .black.opacity(0.02), radius: 10, y: 5).transition(.opacity)
-                }
-                
-                // 4. 生成按钮
-                Button { generateRoutine() } label: {
-                    HStack {
-                        Image(systemName: "cpu")
-                        Text(totalMinutes == 0 ? "请先拉动时间条 ⏱️" : (generatedPhases.isEmpty ? "启动智能训练引擎" : "重新智能生成"))
-                    }
-                    .font(.headline).foregroundColor(.white).frame(maxWidth: .infinity).padding()
-                    .background(totalMinutes == 0 ? Color.gray.opacity(0.5) : (isGenerating ? Color.lcSoftBlue : Color.lcAccentBlue))
-                    .cornerRadius(20)
-                }
-                .disabled(totalMinutes == 0)
-                
+                // 4. 专属私教生成按钮
+                                if totalMinutes > 0 {
+                                    Button {
+                                        generateRoutine()
+                                    } label: {
+                                        HStack {
+                                            if isGenerating {
+                                                ProgressView().tint(.white)
+                                                    .padding(.trailing, 8)
+                                                Text("私教正在排课中...").font(.headline)
+                                            } else {
+                                                Text("⚡️ 生成今日专属计划").font(.title3.bold())
+                                            }
+                                        }
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 18)
+                                        .background(isGenerating ? Color.lcTextSecondary : Color.lcAccentBlue)
+                                        .cornerRadius(20)
+                                        .shadow(color: Color.lcAccentBlue.opacity(0.3), radius: 10, y: 5)
+                                    }
+                                    .disabled(isGenerating)
+                                    .padding(.top, 10)
+                                }
                 // 5. 引擎输出结果展示
                 if !generatedPhases.isEmpty {
                     VStack(alignment: .leading, spacing: 24) {
@@ -221,13 +263,21 @@ struct FitnessCoachView: View {
             }
             
             HStack(spacing: 8) {
-                if !action.targetMuscle.isEmpty {
-                    Text("🎯 练：\(action.targetMuscle)")
-                        .font(.system(size: 11, weight: .bold)).foregroundColor(.lcText)
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Color.lcCheeseYellow.opacity(0.4)).cornerRadius(6)
-                }
-            }
+                            if !action.targetMuscle.isEmpty {
+                                Text("🎯 练：\(action.targetMuscle)")
+                                    .font(.system(size: 11, weight: .bold)).foregroundColor(.lcText)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(Color.lcCheeseYellow.opacity(0.4)).cornerRadius(6)
+                            }
+                            
+                            // 🆕 路线A新增：显示专业强度 (RPE / 心率)
+                            if let intensity = action.intensity {
+                                Text(intensity)
+                                    .font(.system(size: 11, weight: .bold)).foregroundColor(.white)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(Color.orange.opacity(0.6)).cornerRadius(6)
+                            }
+                        }
             if let activeRest = action.activeRest {
                 HStack(spacing: 6) {
                     Text("🔄 间隙：").font(.system(size: 12, weight: .bold)).foregroundColor(.lcAccentBlue)
@@ -242,101 +292,120 @@ struct FitnessCoachView: View {
     }
     
     // MARK: - 🧠 核心逻辑
-    private func generateRoutine() {
-        withAnimation(.spring()) { isGenerating = true }
-        #if os(iOS)
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        #endif
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            var newPhases: [WorkoutPhase] = []
+    // MARK: - 🧠 核心逻辑 (科学进阶版)
+        private func generateRoutine() {
+            withAnimation(.spring()) { isGenerating = true }
+            #if os(iOS)
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            #endif
             
-            let targetSets = strengthMinutes >= 40 ? 4 : (strengthMinutes >= 20 ? 3 : 2)
-            
-            // ---- PART 1: 热身 ----
-            var warmupActions: [FitnessAction] = []
-            let wPool = getSmartWarmupPool(part: selectedPart)
-            for i in 0..<min(2, wPool.count) {
-                if totalMinutes <= 20 && i == 1 { break }
-                var action = wPool[i]
-                action.baseReps = "1 组 × \(action.baseReps)"
-                warmupActions.append(action)
-            }
-            newPhases.append(WorkoutPhase(title: "Part 1 🔥 针对性热身", subtitle: "唤醒神经，预防受伤", actions: warmupActions))
-            
-            // ---- PART 2: 核心训练 ----
-            if strengthMinutes > 0 {
-                var mainActions: [FitnessAction] = []
-                let restPool = getActiveRestPool().shuffled()
-                let balancedPool = getSmartBalancedPool(equip: selectedEquip, part: selectedPart)
-                let actionCount = strengthMinutes <= 15 ? 2 : (strengthMinutes <= 30 ? 3 : 4)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                var newPhases: [WorkoutPhase] = []
                 
-                for i in 0..<min(actionCount, balancedPool.count) {
-                    var action = balancedPool[i]
-                    action.baseReps = "\(targetSets) 组 × \(action.baseReps)"
-                    action.activeRest = restPool[i % restPool.count]
-                    mainActions.append(action)
+                // 🆕 1. 容量控制：不再只看时间，还要看“训练等级(trainingLevel)”
+                let baseSets = strengthMinutes >= 40 ? 4 : (strengthMinutes >= 20 ? 3 : 2)
+                // 新手组数打折，高手组数增加
+                let targetSets = trainingLevel == 0 ? min(baseSets, 2) : (trainingLevel == 1 ? baseSets : baseSets + 1)
+                
+                // 🆕 2. 强度控制：根据等级给出 RPE（主观疲劳度）建议
+                let rpeGuide = trainingLevel == 0 ? "🐣 RPE 6-7 (做完还能做3个)" : (trainingLevel == 1 ? "🐥 RPE 8 (做完还能做1-2个)" : "🦅 RPE 9-10 (接近力竭极限)")
+                
+                // ---- PART 1: 热身 ----
+                var warmupActions: [FitnessAction] = []
+                let wPool = getSmartWarmupPool(part: selectedPart)
+                for i in 0..<min(2, wPool.count) {
+                    // 假设存在 totalMinutes，如果没有会报错，如果是这样请告诉我
+                    if (strengthMinutes + cardioMinutes) <= 20 && i == 1 { break }
+                    var action = wPool[i]
+                    action.baseReps = "1 组 × \(action.baseReps)"
+                    action.intensity = "🌡️ 身体微微发热，关节润滑即可" // 注入强度
+                    action.priority = 1
+                    warmupActions.append(action)
                 }
-                newPhases.append(WorkoutPhase(title: "Part 2 💪 核心容量", subtitle: "动作已做肌群平衡处理", actions: mainActions))
-            }
-            
-            // ---- PART 2.5: 有氧 ----
-            if cardioMinutes > 0 {
-                let cardioName = cardioTypes[selectedCardio].components(separatedBy: " ").last ?? ""
-                let cardioActions = getSmartCardioActions(
-                    minutes: Int(cardioMinutes),
-                    selectedCardioName: cardioName
-                )
-
-                let cardioSubtitle: String
-                if cardioMinutes <= 15 {
-                    cardioSubtitle = "轻量活动，恢复一下状态"
-                } else if cardioMinutes <= 30 {
-                    cardioSubtitle = "分段稳态，开始进入节奏"
-                } else {
-                    switch cardioName {
-                    case "椭圆机":
-                        cardioSubtitle = "坡度 + 阻力分段输出"
-                    case "跑步机":
-                        cardioSubtitle = "热身、主训练、冷却三段跑"
-                    case "动感单车":
-                        cardioSubtitle = "阻力分段，稳定踩完全程"
-                    case "爬楼机":
-                        cardioSubtitle = "臀腿耐力三段推进"
-                    case "散步":
-                        cardioSubtitle = "快走耐力，轻压力燃脂"
-                    case "游泳":
-                        cardioSubtitle = "分段游动，节奏更完整"
-                    default:
-                        cardioSubtitle = "分段有氧，跟着节奏做完"
+                newPhases.append(WorkoutPhase(title: "Part 1 🔥 针对性热身", subtitle: "唤醒神经，预防受伤", actions: warmupActions))
+                
+                // ---- PART 2: 核心训练 ----
+                if strengthMinutes > 0 {
+                    var mainActions: [FitnessAction] = []
+                    let restPool = getActiveRestPool().shuffled()
+                    let balancedPool = getSmartBalancedPool(equip: selectedEquip, part: selectedPart)
+                    let actionCount = strengthMinutes <= 15 ? 2 : (strengthMinutes <= 30 ? 3 : 4)
+                    
+                    for i in 0..<min(actionCount, balancedPool.count) {
+                        var action = balancedPool[i]
+                        action.baseReps = "\(targetSets) 组 × \(action.baseReps)"
+                        action.activeRest = restPool[i % restPool.count]
+                        action.intensity = rpeGuide // 🆕 注入刚才算好的 RPE 强度
+                        action.priority = 2
+                        mainActions.append(action)
                     }
+                    newPhases.append(WorkoutPhase(title: "Part 2 💪 核心容量", subtitle: "动作已做肌群平衡处理", actions: mainActions))
                 }
-
-                newPhases.append(
-                    WorkoutPhase(
-                        title: "Part 2.5 🏃‍♀️ 智能有氧",
-                        subtitle: cardioSubtitle,
-                        actions: cardioActions
+                
+                // ---- PART 2.5: 有氧 ----
+                if cardioMinutes > 0 {
+                    let cardioName = cardioTypes[selectedCardio].components(separatedBy: " ").last ?? ""
+                    let cardioActionsRaw = getSmartCardioActions(
+                        minutes: Int(cardioMinutes),
+                        selectedCardioName: cardioName
                     )
-                )
-            }
-            // ---- PART 3: 放松 ----
-            var cooldownActions: [FitnessAction] = []
-            let cPool = getSmartCooldownPool(part: selectedPart)
-            for i in 0..<min(2, cPool.count) {
-                if totalMinutes <= 30 && i == 1 { break }
-                var action = cPool[i]
-                action.baseReps = "1 组 × \(action.baseReps)"
-                cooldownActions.append(action)
-            }
-            newPhases.append(WorkoutPhase(title: "Part 3 🧘‍♀️ 靶向拉伸", subtitle: "哪里酸痛拉哪里", actions: cooldownActions))
-            
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-                generatedPhases = newPhases
-                isGenerating = false
+                    
+                    // 🆕 3. 有氧目标：根据 cardioGoal 注入明确的心率/状态指导
+                    let cardioIntensity = cardioGoal == 0 ? "🔥燃脂: 心率120-135 (能连贯说话)" : (cardioGoal == 1 ? "❤️心肺: 心率140-160 (说话微喘)" : "⚡冲刺: 间歇爆发 (无法说话)")
+
+                    let cardioSubtitle: String
+                    if cardioMinutes <= 15 {
+                        cardioSubtitle = "轻量活动，恢复一下状态"
+                    } else if cardioMinutes <= 30 {
+                        cardioSubtitle = "分段稳态，开始进入节奏"
+                    } else {
+                        switch cardioName {
+                        case "椭圆机": cardioSubtitle = "坡度 + 阻力分段输出"
+                        case "跑步机": cardioSubtitle = "热身、主训练、冷却三段跑"
+                        case "动感单车": cardioSubtitle = "阻力分段，稳定踩完全程"
+                        case "爬楼机": cardioSubtitle = "臀腿耐力三段推进"
+                        case "散步": cardioSubtitle = "快走耐力，轻压力燃脂"
+                        case "游泳": cardioSubtitle = "分段游动，节奏更完整"
+                        default: cardioSubtitle = "分段有氧，跟着节奏做完"
+                        }
+                    }
+                    
+                    // 把强度注入到每个有氧动作里
+                    var cardioActions: [FitnessAction] = []
+                    for var action in cardioActionsRaw {
+                        action.intensity = cardioIntensity
+                        action.priority = 1
+                        cardioActions.append(action)
+                    }
+
+                    newPhases.append(
+                        WorkoutPhase(
+                            title: "Part 2.5 🏃‍♀️ 智能有氧",
+                            subtitle: cardioSubtitle,
+                            actions: cardioActions
+                        )
+                    )
+                }
+                
+                // ---- PART 3: 放松 ----
+                var cooldownActions: [FitnessAction] = []
+                let cPool = getSmartCooldownPool(part: selectedPart)
+                for i in 0..<min(2, cPool.count) {
+                    if (strengthMinutes + cardioMinutes) <= 30 && i == 1 { break }
+                    var action = cPool[i]
+                    action.baseReps = "1 组 × \(action.baseReps)"
+                    action.intensity = "🧘‍♀️ 感受轻微拉扯感，深呼吸" // 注入强度
+                    action.priority = 3
+                    cooldownActions.append(action)
+                }
+                newPhases.append(WorkoutPhase(title: "Part 3 🧘‍♀️ 靶向拉伸", subtitle: "哪里酸痛拉哪里", actions: cooldownActions))
+                
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                    generatedPhases = newPhases
+                    isGenerating = false
+                }
             }
         }
-    }
     
     // MARK: - 🧠 引擎数据层
     private func getSmartWarmupPool(part: Int) -> [FitnessAction] {
