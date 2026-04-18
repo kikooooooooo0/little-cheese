@@ -151,5 +151,161 @@ func getSmartBalancedPool(equip: Int, part: Int) -> [FitnessAction] {
             pool.append(FitnessAction(name: "中空静力支撑 (Hollow Hold)", targetMuscle: "深层抗伸展", tip: "下背必须压实地面！如果腰酸就把腿抬高一点", emojiIcon: "🥣", steps: ["仰卧，腰压平地面", "双手双脚伸直微微抬离地面", "保持颤抖，不憋气"], baseReps: "30 - 45 秒"))
         }
     }
-    return pool
+    return buildStructuredWorkout(from: sortActionsByPriority(pool))
+}
+// MARK: Exercise Model
+
+struct Exercise: Identifiable {
+    let id: UUID
+    let name: String
+    
+    let category: Category
+    let type: ExerciseType
+    let equipment: Equipment
+    let difficulty: Difficulty
+    
+    let isCompound: Bool
+    
+    init(
+        id: UUID = UUID(),
+        name: String,
+        category: Category,
+        type: ExerciseType,
+        equipment: Equipment,
+        difficulty: Difficulty,
+        isCompound: Bool
+    ) {
+        self.id = id
+        self.name = name
+        self.category = category
+        self.type = type
+        self.equipment = equipment
+        self.difficulty = difficulty
+        self.isCompound = isCompound
+    }
+}
+
+// MARK: Category
+
+enum Category: String, CaseIterable {
+    case chest = "胸"
+    case back = "背"
+    case legs = "腿"
+    case shoulders = "肩"
+    case arms = "手臂"
+    case core = "核心"
+}
+
+// MARK: Type
+
+enum ExerciseType: String {
+    case compound = "复合动作"
+    case isolation = "孤立动作"
+}
+
+// MARK: Equipment
+
+enum Equipment: String {
+    case barbell = "杠铃"
+    case dumbbell = "哑铃"
+    case machine = "器械"
+    case bodyweight = "自重"
+}
+
+// MARK: Difficulty
+
+enum Difficulty: String {
+    case beginner = "初级"
+    case intermediate = "中级"
+    case advanced = "高级"
+}
+// MARK: Priority
+
+enum ActionPriority: Int {
+    case primary = 1      // 核心动作：优先推荐，优先排前面
+    case secondary = 2    // 辅助动作：中间层
+    case accessory = 3    // 补充动作：收尾/补短板
+}
+
+// MARK: FitnessAction Priority Engine
+
+func getPriority(for action: FitnessAction) -> ActionPriority {
+    let name = action.name
+
+    let primaryKeywords = [
+        "深蹲", "高脚杯深蹲", "史密斯深蹲",
+        "硬拉", "罗马尼亚硬拉", "RDL",
+        "臀桥", "髋推",
+        "高位下拉", "下拉",
+        "划船", "坐姿划船", "俯身划船",
+        "倒蹬机", "Leg Press",
+        "箭步蹲"
+    ]
+
+    let secondaryKeywords = [
+        "面拉", "反向飞鸟",
+        "墙天使", "墙滑", "Y-T-W",
+        "帕洛夫推", "Pallof Press",
+        "死虫子", "Deadbug",
+        "鸟狗式", "Bird Dog"
+    ]
+
+    if primaryKeywords.contains(where: { name.contains($0) }) {
+        return .primary
+    }
+
+    if secondaryKeywords.contains(where: { name.contains($0) }) {
+        return .secondary
+    }
+
+    return .accessory
+}
+
+func sortActionsByPriority(_ actions: [FitnessAction]) -> [FitnessAction] {
+    return actions.sorted { left, right in
+        let leftPriority = getPriority(for: left).rawValue
+        let rightPriority = getPriority(for: right).rawValue
+
+        if leftPriority != rightPriority {
+            return leftPriority < rightPriority
+        }
+
+        return left.name < right.name
+    }
+}
+// MARK: Structured Action Picker
+
+func buildStructuredWorkout(from actions: [FitnessAction]) -> [FitnessAction] {
+    let primary = actions.filter { getPriority(for: $0) == .primary }.shuffled()
+    let secondary = actions.filter { getPriority(for: $0) == .secondary }.shuffled()
+    let accessory = actions.filter { getPriority(for: $0) == .accessory }.shuffled()
+
+    var result: [FitnessAction] = []
+
+    if let onePrimary = primary.first {
+        result.append(onePrimary)
+    }
+
+    if let oneSecondary = secondary.first {
+        result.append(oneSecondary)
+    }
+
+    if let oneAccessory = accessory.first {
+        result.append(oneAccessory)
+    }
+
+    // 如果某一层没有动作，就从剩余动作里随机补位，最多补到 3 个
+    if result.count < 3 {
+        let usedNames = Set(result.map { $0.name })
+        let fallback = actions
+            .filter { !usedNames.contains($0.name) }
+            .shuffled()
+
+        for action in fallback {
+            if result.count >= 3 { break }
+            result.append(action)
+        }
+    }
+
+    return result
 }

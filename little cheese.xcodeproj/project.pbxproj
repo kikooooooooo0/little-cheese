@@ -26,6 +26,9 @@
 				CollectionsView.swift,
 				ContentView.swift,
 				DietSOPView.swift,
+				ExerciseGuideDetailView.swift,
+				ExerciseGuideListView.swift,
+				ExerciseGuideModels.swift,
 				FitnessACSMView.swift,
 				FitnessBlindBoxView.swift,
 				FitnessCoachView.swift,
@@ -44,6 +47,9 @@
 				TodoListView.swift,
 				WeeklyReviewView.swift,
 				WeightRecordView.swift,
+				WorkoutActionDetailView.swift,
+				WorkoutExecutionView.swift,
+				WorkoutSessionView.swift,
 			);
 			target = F8619AA12EDA447B001B6750 /* LittleCheese iOS */;
 		};
