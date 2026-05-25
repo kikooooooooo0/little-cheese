@@ -252,6 +252,9 @@ struct JournalDetailView: View {
     
     let entry: JournalEntry?    // 如果是 nil 表示新增
     
+    // 🧀 Little Cheese：自动读取今天的饮食打卡
+    @AppStorage("littleCheese.dietCheckinRecords") private var dietCheckinJSONString: String = "[]"
+    
     // 模板三个输入区（只在“写新日记”时使用）
     @State private var recordText: String = ""   // 今天我想记录下来的事是：
     @State private var talkText: String = ""     // 我想要聊的是：
@@ -309,6 +312,64 @@ struct JournalDetailView: View {
         return state.todayTasks.filter { $0.isDone }.map { $0.title }
     }
     
+    // MARK: - 🧀 自动日记联动：饮食 + 运动
+    
+    private var dietRecordsForThisDate: [DietCheckinRecord] {
+        guard let data = dietCheckinJSONString.data(using: .utf8) else {
+            return []
+        }
+        
+        let allRecords = (try? JSONDecoder().decode([DietCheckinRecord].self, from: data)) ?? []
+        
+        return allRecords
+            .filter { $0.dateKey == dateString }
+            .sorted { $0.date < $1.date }
+    }
+    
+    private var workoutItemsForThisDate: [String] {
+        completedItemsForThisDate.filter { title in
+            title.contains("运动") ||
+            title.contains("训练") ||
+            title.contains("动作") ||
+            title.contains("练") ||
+            title.contains("🏋️") ||
+            title.contains("💪") ||
+            title.contains("🔥")
+        }
+    }
+    
+    private var autoLifeSummaryLines: [String] {
+        var lines: [String] = []
+        
+        if !dietRecordsForThisDate.isEmpty {
+            lines.append("🍽️ 今日饮食")
+            for record in dietRecordsForThisDate {
+                // 这里修改：用 content 替代 sopName，并根据 mealType 显示不同图标
+                let icon = record.mealType == "早餐" ? "☀️" : (record.mealType == "午餐" ? "🍱" : "🌙")
+                lines.append("• \(record.mealType)：\(icon) \(record.content)")
+            }
+        }
+        
+        // ... 后续代码不变
+        if !workoutItemsForThisDate.isEmpty {
+            if !lines.isEmpty { lines.append("") }
+            lines.append("🏋️ 今日运动")
+            for item in workoutItemsForThisDate {
+                lines.append("• \(item)")
+            }
+        }
+        
+        let usages = state.timeUsageFor(date: date)
+        if !usages.isEmpty {
+            if !lines.isEmpty { lines.append("") }
+            lines.append("⏱️ 今日时间分布")
+            for usage in usages {
+                lines.append("• \(usage.name)：\(usage.minutes) 分钟")
+            }
+        }
+        
+        return lines
+    }
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -422,11 +483,14 @@ struct JournalDetailView: View {
                             todaySummaryCard()
                         }
                         
-                        // 正文
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("这一天的日记")
-                                .font(.headline)
-                                .foregroundColor(.primary)
+                        // ✨ 插入自动回顾卡片（分离显示，不污染正文）
+                                                autoLifeSummaryCard()
+
+                                                // 正文
+                                                VStack(alignment: .leading, spacing: 8) {
+                                                    Text("这一天的日记")
+                                                        .font(.headline)
+                                                        .foregroundColor(.primary)
                             
                             if isEditingExisting {
                                 TextEditor(text: $recordText)
@@ -443,6 +507,8 @@ struct JournalDetailView: View {
                     }
                 } else {
                     // =========☀️ 写【新日记】模式 (包含你的模版) =========
+                    
+                    autoLifeSummaryCard()
                     
                     // 1. 今日一句话
                     VStack(alignment: .leading, spacing: 8) {
@@ -551,16 +617,18 @@ struct JournalDetailView: View {
     // MARK: - 逻辑方法
     
     private func buildCombinedText() -> String {
-        var parts: [String] = []
-        let r = recordText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let t = talkText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let m = maybeText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !r.isEmpty { parts.append(r) }
-        if !t.isEmpty { parts.append(t) }
-        if !m.isEmpty { parts.append(m) }
-        return parts.joined(separator: "\n\n")
-    }
-    
+            var parts: [String] = []
+            
+            let r = recordText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let t = talkText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let m = maybeText.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            if !r.isEmpty { parts.append(r) }
+            if !t.isEmpty { parts.append(t) }
+            if !m.isEmpty { parts.append(m) }
+            
+            return parts.joined(separator: "\n\n")
+        }
     private func loadFromEntry() {
         guard let entry = entry else { return }
         recordText = entry.text
@@ -606,6 +674,52 @@ struct JournalDetailView: View {
         let trimmedOne = oneLineText.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedText.isEmpty && trimmedOne.isEmpty { return }
         state.updateJournal(for: date, text: trimmedText, oneLine: trimmedOne.isEmpty ? nil : trimmedOne)
+    }
+    private func autoLifeSummaryCard() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .foregroundColor(.lcCheeseYellow)
+                
+                Text("今天 Little Cheese 自动记下了")
+                    .font(.headline)
+                    .foregroundColor(.lcText)
+            }
+            
+            if autoLifeSummaryLines.isEmpty {
+                Text("今天还没有饮食或运动记录。没关系，空白也是一种真实生活。")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .lineSpacing(3)
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(autoLifeSummaryLines, id: \.self) { line in
+                        if line.isEmpty {
+                            Spacer().frame(height: 4)
+                        } else if line.hasPrefix("🍽️") || line.hasPrefix("🏋️") || line.hasPrefix("⏱️") {
+                            Text(line)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.lcText)
+                                .padding(.top, 4)
+                        } else {
+                            Text(line)
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color.lcYellow.opacity(0.13))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.lcYellow.opacity(0.35), lineWidth: 1)
+        )
     }
     
     private func todaySummaryCard() -> some View {

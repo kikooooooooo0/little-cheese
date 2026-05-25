@@ -87,6 +87,7 @@ struct WeightRecord: Identifiable, Codable {
     var hadLunch: Bool = false
     var hadDinner: Bool = false
     var isIndulgenceDay: Bool = false
+    var dinnerQuality: DinnerQuality? = nil
 }
 
 // MARK: LifeArea START
@@ -830,7 +831,62 @@ class AppState: ObservableObject {
             journalEntries.append(newEntry)
         }
     }
-    
+   
+    // MARK: - 🧀 V2：饮食自动写入今天日记
+
+    func appendDietLineToTodayJournal(_ line: String) {
+        let todayDS = AppState.df.string(from: Date())
+        let cleanLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !cleanLine.isEmpty else { return }
+        
+        if let index = journalEntries.firstIndex(where: { $0.dateString == todayDS }) {
+            var entry = journalEntries[index]
+            
+            var lines = (entry.oneLine ?? "")
+                .components(separatedBy: "\n")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            
+            // 避免重复写入同一句
+            guard !lines.contains(cleanLine) else { return }
+            
+            lines.append(cleanLine)
+            entry.oneLine = lines.joined(separator: "\n")
+            journalEntries[index] = entry
+        } else {
+            let newEntry = JournalEntry(
+                dateString: todayDS,
+                recordText: "",
+                talkText: "",
+                maybeText: "",
+                oneLine: cleanLine,
+                moodEmoji: todayMoodEmoji,
+                progressRate: nil
+            )
+            
+            journalEntries.append(newEntry)
+        }
+    }
+
+    func removeDietLineFromTodayJournal(_ line: String) {
+        let todayDS = AppState.df.string(from: Date())
+        let cleanLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !cleanLine.isEmpty else { return }
+        guard let index = journalEntries.firstIndex(where: { $0.dateString == todayDS }) else { return }
+        
+        var entry = journalEntries[index]
+        
+        let lines = (entry.oneLine ?? "")
+            .components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && $0 != cleanLine }
+        
+        entry.oneLine = lines.joined(separator: "\n")
+        journalEntries[index] = entry
+    }
+
     private func saveTimeBlocks() {
         if let data = try? JSONEncoder().encode(timeBlocks) {
             UserDefaults.standard.set(data, forKey: timeBlocksKey)

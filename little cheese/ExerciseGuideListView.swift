@@ -1,7 +1,10 @@
 import SwiftUI
 
 struct ExerciseGuideListView: View {
-    private let items = ExerciseGuideLibrary.sampleExercises
+    @ObservedObject var state: AppState
+
+    // 🧀 使用统一的新数据源
+    private let items = WorkoutLibrary.exercises
 
     var body: some View {
         NavigationStack {
@@ -12,7 +15,7 @@ struct ExerciseGuideListView: View {
                     VStack(spacing: 12) {
                         ForEach(items) { item in
                             NavigationLink {
-                                ExerciseGuideDetailView(item: item)
+                                WorkoutActionDetailView(state: state, action: item)
                             } label: {
                                 ExerciseGuideRowCard(item: item)
                             }
@@ -22,7 +25,7 @@ struct ExerciseGuideListView: View {
                 }
                 .padding(16)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Color.lcBackground)
             .navigationTitle("动作引导")
             .navigationBarTitleDisplayMode(.large)
         }
@@ -36,34 +39,35 @@ struct ExerciseGuideListView: View {
 
             Text("不用记术语，也不用慌。点开一个动作，我会一步一步带你做。")
                 .font(.body)
-                .foregroundColor(.secondary)
+                .foregroundColor(.lcTextSecondary)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
+        .background(Color.lcCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
+// MARK: - 列表卡片 UI
 struct ExerciseGuideRowCard: View {
-    let item: ExerciseItem
+    let item: WorkoutActionModel
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color(.systemGray6))
+                    .fill(Color.lcSoftBlue.opacity(0.3))
                     .frame(width: 52, height: 52)
 
                 Image(systemName: iconName(for: item.category))
                     .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.lcAccentBlue)
             }
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(item.name)
                         .font(.headline)
-                        .foregroundColor(.primary)
+                        .foregroundColor(.lcText)
 
                     Spacer()
 
@@ -71,62 +75,52 @@ struct ExerciseGuideRowCard: View {
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color(.systemGray6))
+                        .background(Color.lcCheeseYellow.opacity(0.2))
+                        .foregroundColor(.lcYellow)
                         .clipShape(Capsule())
                 }
 
-                Text(item.guide.shortDescription)
+                Text(item.shortDesc)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.lcTextSecondary)
+                    .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
                 HStack(spacing: 6) {
-                    ForEach(item.guide.targetAreas.prefix(3), id: \.self) { area in
-                        Text(area)
-                            .font(.caption2)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(Color(.systemGray6))
-                            .clipShape(Capsule())
-                    }
+                    Text(item.targetMuscle)
+                        .font(.caption2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(Color.gray.opacity(0.1))
+                        .foregroundColor(.lcTextSecondary)
+                        .clipShape(Capsule())
                 }
             }
 
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
-                .foregroundColor(.secondary)
+                .foregroundColor(.gray.opacity(0.5))
                 .padding(.top, 4)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
+        .background(Color.lcCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.02), radius: 5, y: 2)
     }
 
     private func iconName(for category: ExerciseCategory) -> String {
         switch category {
-        case .lowerBody:
-            return "figure.strengthtraining.traditional"
-        case .upperBody:
-            return "figure.mixed.cardio"
-        case .core:
-            return "figure.core.training"
-        case .fullBody:
-            return "figure.highintensity.intervaltraining"
-        case .cardio:
-            return "heart.circle"
-        case .mobility:
-            return "figure.flexibility"
+        case .lowerBody: return "figure.strengthtraining.traditional"
+        case .upperBody: return "figure.mixed.cardio"
+        case .core: return "figure.core.training"
+        case .fullBody: return "figure.highintensity.intervaltraining"
+        case .cardio: return "heart.circle"
+        case .mobility: return "figure.flexibility"
         }
     }
 }
 
 #Preview {
-    ExerciseGuideListView()
-}//
-//  ExerciseGuideListView.swift
-//  little cheese
-//
-//  Created by jdjdind dhdjkd on 2026-04-18.
-//
-
+    ExerciseGuideListView(state: AppState())
+}

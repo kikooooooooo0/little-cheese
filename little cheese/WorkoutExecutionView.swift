@@ -2,10 +2,10 @@ import SwiftUI
 
 // MARK: - 运动执行页 (陪练模式)
 struct WorkoutExecutionView: View {
+    @ObservedObject var state: AppState
     let action: WorkoutActionModel
     
     @Environment(\.dismiss) var dismiss
-    
     // 运动状态管理
     @State private var currentSet: Int = 1
     @State private var totalSets: Int = 3 // 默认做3组
@@ -196,10 +196,13 @@ struct WorkoutExecutionView: View {
     // MARK: - 逻辑控制
     
     private func finishSet() {
-        // 如果是最后一组，直接结束
+        // 如果是最后一组，记录到 Today / 日记联动，然后结束
         if currentSet >= totalSets {
-            // 这里可以加上撒花特效，或者记录到 AppState
-            print("训练完成！记录数据...")
+            let workoutTitle = "🏋️ 动作已完成：\(action.name) \(totalSets)组 × \(targetReps)次"
+            
+            state.addTodayTask(title: workoutTitle)
+            
+            print("训练完成！已记录到今日任务：\(workoutTitle)")
             dismiss()
         } else {
             // 否则进入休息状态
@@ -242,6 +245,10 @@ struct WorkoutExecutionView: View {
 }
 
 // 预览
+// 预览
 #Preview {
-    WorkoutExecutionView(action: sampleGluteBridge)
+    WorkoutExecutionView(
+        state: AppState(),
+        action: WorkoutLibrary.exercises[0]
+    )
 }

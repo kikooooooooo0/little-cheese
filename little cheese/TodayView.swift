@@ -1,4 +1,27 @@
 import SwiftUI
+import SwiftUI
+
+// MARK: - 🧀 今日三餐计划缓存模型
+struct TodayDietPlanMeals: Codable {
+    var dateKey: String
+    var planName: String
+    var emoji: String
+    var dayNumber: Int
+    var breakfast: String
+    var lunch: String
+    var dinner: String
+}
+
+// MARK: - 🧀 今日计划三餐详情弹窗
+struct TodayDietPlanMealDetail: Identifiable {
+    var id: String { mealType }
+    
+    var mealType: String
+    var mealText: String
+    var planName: String
+    var emoji: String
+    var dayNumber: Int
+}
 
 // MARK: - Today View (终极稳固版)
 struct TodayView: View {
@@ -8,6 +31,8 @@ struct TodayView: View {
     @Namespace private var namespace
     @State private var isShowingPomodoroSheet: Bool = false
     @State private var isShowingTinyHabitSheet: Bool = false
+    @State private var selectedDietPlanMeal: TodayDietPlanMealDetail? = nil
+    @State private var customMealInput: String = "__HIDDEN__"
     @AppStorage("lc_todayLastOpenDateKey") private var lastOpenDateKey: String = ""
     @State private var didCheckDailyReset: Bool = false
     @State private var newTaskTitle: String = ""
@@ -16,7 +41,23 @@ struct TodayView: View {
     @State private var tinyTrigger: String = ""
     @State private var tinyAction: String = ""
     @State private var tinyTargetCount: Int = 1
-    
+    private var todayMealProgress: Int {
+        var count = 0
+        
+        if latestMealRecord(for: "早餐") != nil {
+            count += 1
+        }
+        
+        if latestMealRecord(for: "午餐") != nil {
+            count += 1
+        }
+        
+        if latestMealRecord(for: "晚餐") != nil {
+            count += 1
+        }
+        
+        return count
+    }
     // ✨ 新增：今日进度百分比（价值回声）
     private var todayProgressPercentage: Double {
         let totalTasks = Double(state.todayTasks.count)
@@ -42,7 +83,257 @@ struct TodayView: View {
         f.dateFormat = "M月d日"
         return f.string(from: Date())
     }
+    // MARK: - 🧀 今日饮食联动数据
+    @AppStorage("littleCheese.dietCheckinRecords") private var dietCheckinJSONString: String = "[]"
 
+    // 🧀 从饮食计划页同步来的今日三餐计划
+    @AppStorage("littleCheese.todayDietPlanMeals") private var todayDietPlanMealsJSONString: String = ""
+    
+    private var todayDateKey: String {
+        makeDateKey(Date())
+    }
+    
+    private var todayDietRecords: [DietCheckinRecord] {
+        guard let data = dietCheckinJSONString.data(using: .utf8) else {
+            return []
+        }
+        
+        let allRecords = (try? JSONDecoder().decode([DietCheckinRecord].self, from: data)) ?? []
+        return allRecords.filter { $0.dateKey == todayDateKey }
+    }
+    private var todayDietPlanMeals: TodayDietPlanMeals? {
+        guard let data = todayDietPlanMealsJSONString.data(using: .utf8),
+              let meals = try? JSONDecoder().decode(TodayDietPlanMeals.self, from: data),
+              meals.dateKey == todayDateKey else {
+            return nil
+        }
+        
+        return meals
+    }
+    private var todayMealDoneCount: Int {
+        let mealTypes = Set(todayDietRecords.map { $0.mealType })
+        return ["早餐", "午餐", "晚餐"].filter { mealTypes.contains($0) }.count
+    }
+    
+    private var completedMealCount: Int {
+        var count = 0
+        
+        if latestMealRecord(for: "早餐") != nil {
+            count += 1
+        }
+        
+        if latestMealRecord(for: "午餐") != nil {
+            count += 1
+        }
+        
+        if latestMealRecord(for: "晚餐") != nil {
+            count += 1
+        }
+        
+        return count
+    }
+    
+    private var todayMealProgressText: String {
+        if todayMealDoneCount == 0 {
+            return "今天还没开始补能量"
+        } else if todayMealDoneCount < 3 {
+            return "今日饮食 \(todayMealDoneCount)/3 已完成"
+        } else {
+            return "三餐稳稳接住啦"
+        }
+    }
+    
+    private func latestMealRecord(for mealType: String) -> DietCheckinRecord? {
+        todayDietRecords
+            .filter { $0.mealType == mealType }
+            .sorted { $0.date > $1.date }
+            .first
+    }
+    private func plannedMealText(for mealType: String) -> String? {
+        guard let meals = todayDietPlanMeals else { return nil }
+        
+        let rawText: String
+        switch mealType {
+        case "早餐":
+            rawText = meals.breakfast
+        case "午餐":
+            rawText = meals.lunch
+        case "晚餐":
+            rawText = meals.dinner
+        default:
+            return nil
+        }
+        
+        return cleanMealDisplayText(rawText)
+    }
+
+    private func cleanMealDisplayText(_ text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if let range = trimmed.range(of: "：") {
+            return String(trimmed[range.upperBound...])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        if let range = trimmed.range(of: ":") {
+            return String(trimmed[range.upperBound...])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        return trimmed
+    }
+
+    private func plannedMealDetail(for mealType: String) -> TodayDietPlanMealDetail? {
+        guard let meals = todayDietPlanMeals,
+              let mealText = plannedMealText(for: mealType) else {
+            return nil
+        }
+        
+        return TodayDietPlanMealDetail(
+            mealType: mealType,
+            mealText: mealText,
+            planName: meals.planName,
+            emoji: meals.emoji,
+            dayNumber: meals.dayNumber
+        )
+    }
+    
+    private func makeDateKey(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+    
+    private func syncTodayMealFlagsFromRecords() {
+        if latestMealRecord(for: "早餐") != nil {
+            state.isBreakfastDone = true
+        }
+        
+        if latestMealRecord(for: "午餐") != nil {
+            state.isLunchDone = true
+        }
+        
+        if latestMealRecord(for: "晚餐") != nil {
+            state.isDinnerDone = true
+        }
+    }
+    private func completePlannedMeal(_ meal: TodayDietPlanMealDetail) {
+        var records = loadDietCheckinRecordsForTodayView()
+        let todayKey = makeDateKey(Date())
+        
+        let newRecord = DietCheckinRecord(
+            dateKey: todayKey,
+            date: Date(),
+            mealType: meal.mealType,
+            content: meal.mealText,
+            imageFilename: nil,
+            emoji: meal.emoji,
+            sopName: "\(meal.planName) Day \(meal.dayNumber)：\(meal.mealText)"
+        )
+        
+        // 🧀 如果已经选过，就替换，而不是不更新
+        records.removeAll {
+            $0.dateKey == todayKey &&
+            $0.mealType == meal.mealType
+        }
+        
+        records.append(newRecord)
+        saveDietCheckinRecordsForTodayView(records)
+        
+        // MARK: - 🧀 真正更新 Today 首页显示内容
+        if var meals = todayDietPlanMeals {
+            
+            switch meal.mealType {
+            case "早餐":
+                meals.breakfast = meal.mealText
+                
+            case "午餐":
+                meals.lunch = meal.mealText
+                
+            case "晚餐":
+                meals.dinner = meal.mealText
+                
+            default:
+                break
+            }
+            
+            // 保存回 AppStorage
+            if let data = try? JSONEncoder().encode(meals),
+               let jsonString = String(data: data, encoding: .utf8) {
+                todayDietPlanMealsJSONString = jsonString
+            }
+        }
+        
+        // MARK: - 状态更新
+        if meal.mealType == "早餐" {
+            state.isBreakfastDone = true
+        }
+        
+        if meal.mealType == "午餐" {
+            state.isLunchDone = true
+        }
+        
+        if meal.mealType == "晚餐" {
+            state.isDinnerDone = true
+        }
+        
+        #if os(iOS)
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        #endif
+        
+        selectedDietPlanMeal = nil
+    }
+
+    private func loadDietCheckinRecordsForTodayView() -> [DietCheckinRecord] {
+        guard let data = dietCheckinJSONString.data(using: .utf8) else {
+            return []
+        }
+        
+        return (try? JSONDecoder().decode([DietCheckinRecord].self, from: data)) ?? []
+    }
+
+    private func saveDietCheckinRecordsForTodayView(_ records: [DietCheckinRecord]) {
+        guard let data = try? JSONEncoder().encode(records),
+              let jsonString = String(data: data, encoding: .utf8) else {
+            return
+        }
+        
+        dietCheckinJSONString = jsonString
+    }
+    // MARK: - 🧹 清理旧版饮食计划 Todo
+    private func cleanLegacyDietTodoTasks() {
+        let legacyTaskIDs = state.todayTasks
+            .filter { task in
+                let title = task.title
+                
+                // 旧版自动生成的饮食任务：例如
+                // 🌙 7 天减脂法 Day 1：早餐：两个鸡蛋...
+                // 🍴 饮食已完成：🌙 7 天减脂法...
+                // 饮食打卡：🥚 短期轻断食
+                return title.contains("饮食打卡：")
+                    || title.contains("饮食已完成：")
+                    || title.contains("7 天减脂法 Day")
+                    || title.contains("7天减脂法 Day")
+                    || title.contains("11 天交替计划 Day")
+                    || title.contains("11天交替计划 Day")
+                    || (
+                        title.contains("Day")
+                        && (
+                            title.contains("早餐")
+                            || title.contains("午餐")
+                            || title.contains("晚餐")
+                        )
+                    )
+            }
+            .map { $0.id }
+        
+        for id in legacyTaskIDs {
+            state.deleteTodayTask(id: id)
+        }
+    }
     var body: some View {
         NavigationStack {
             ZStack {
@@ -117,29 +408,91 @@ struct TodayView: View {
                         VStack(spacing: 28) {
                             if viewMode == 0 {
                                 VStack(spacing: 24) {
-                                    // MARK: --- 联动版：今日饮食 SOP 卡片 ---
+                                    // MARK: --- 🧀 强联动版：今日饮食 SOP 卡片 ---
                                     VStack(alignment: .leading, spacing: 16) {
-                                        HStack {
-                                            Text("🍴 今日饮食 SOP").font(.system(.headline, design: .rounded))
-                                            Spacer()
-                                            NavigationLink(destination: DietSOPListView(state: state)) {
-                                                Image(systemName: "pencil.circle.fill")
-                                                    .foregroundColor(.lcAccentBlue.opacity(0.6)).font(.title3)
+                                        HStack(alignment: .center) {
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text("🍴 今日饮食 SOP")
+                                                    .font(.system(.headline, design: .rounded))
+                                                    .foregroundColor(.lcText)
+                                                
+                                                Text(todayMealProgressText)
+                                                    .font(.caption)
+                                                    .foregroundColor(.lcTextSecondary)
                                             }
+                                            
+                                            Spacer()
+                                            
+                                            ZStack {
+                                                Circle()
+                                                    .stroke(Color.lcSoftBlue.opacity(0.35), lineWidth: 5)
+                                                    .frame(width: 42, height: 42)
+                                                
+                                                Circle()
+                                                    .trim(from: 0, to: CGFloat(todayMealProgress))
+                                                    .stroke(
+                                                        Color.lcCheeseYellow,
+                                                        style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                                                    )
+                                                    .frame(width: 42, height: 42)
+                                                    .rotationEffect(.degrees(-90))
+                                                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: todayMealProgress)
+                                                
+                                                Text("\(todayMealDoneCount)/3")
+                                                    .font(.system(size: 10, weight: .black, design: .rounded))
+                                                    .foregroundColor(.lcText)
+                                            }
+                                            
+                                            NavigationLink(destination: DietSOPView(state: state)) {
+                                                Image(systemName: "plus.circle.fill")
+                                                    .foregroundColor(.lcAccentBlue.opacity(0.75))
+                                                    .font(.title3)
+                                            }
+                                            
                                             Text(getTodayChineseWeekday())
-                                                .font(.system(size: 10, weight: .bold)).padding(.horizontal, 8).padding(.vertical, 4)
-                                                .background(Color.lcYellow.opacity(0.2)).cornerRadius(8)
+                                                .font(.system(size: 10, weight: .bold))
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(Color.lcYellow.opacity(0.2))
+                                                .cornerRadius(8)
                                         }
+                                        
                                         VStack(spacing: 10) {
-                                            mealLinkRow(title: "早餐", food: "待执行 SOP", isDone: state.isBreakfastDone)
+                                            mealLinkRow(
+                                                title: "早餐",
+                                                fallback: todayDietPlanMeals?.breakfast ?? "去选一个低成本早餐",
+                                                record: latestMealRecord(for: "早餐"),
+                                                isDone: latestMealRecord(for: "早餐") != nil || state.isBreakfastDone
+                                            )
+                                            
                                             Divider().opacity(0.3)
-                                            mealLinkRow(title: "午餐", food: "待执行 SOP", isDone: state.isLunchDone)
+                                            
+                                            mealLinkRow(
+                                                title: "午餐",
+                                                fallback: todayDietPlanMeals?.lunch ?? "帮身体补一点蛋白质",
+                                                record: latestMealRecord(for: "午餐"),
+                                                isDone: latestMealRecord(for: "午餐") != nil || state.isLunchDone
+                                            )
+                                            
                                             Divider().opacity(0.3)
-                                            mealLinkRow(title: "晚餐", food: "待执行 SOP", isDone: state.isDinnerDone)
+                                            
+                                            mealLinkRow(
+                                                title: "晚餐",
+                                                fallback: todayDietPlanMeals?.dinner ?? "晚餐不用完美，稳住就好",
+                                                record: latestMealRecord(for: "晚餐"),
+                                                isDone: latestMealRecord(for: "晚餐") != nil || state.isDinnerDone
+                                            )
+                                        }
+                                        
+                                        if todayMealDoneCount > 0 {
+                                            dietSummaryPill
                                         }
                                     }
-                                    .padding(20).background(RoundedRectangle(cornerRadius: 24).fill(Color.lcCardBackground))
-                                    
+                                    .padding(20)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 24)
+                                            .fill(Color.lcCardBackground)
+                                    )
                                     journalSection
                                     
                                     VStack(alignment: .leading, spacing: 16) {
@@ -181,32 +534,290 @@ struct TodayView: View {
             }
             .navigationBarHidden(true)
         }
-        .onAppear { checkDailyReset() }
+        .onAppear {
+            checkDailyReset()
+            syncTodayMealFlagsFromRecords()
+            cleanLegacyDietTodoTasks()
+        }
+        .onChange(of: dietCheckinJSONString) {
+            syncTodayMealFlagsFromRecords()
+            cleanLegacyDietTodoTasks()
+        }
         .sheet(isPresented: $isShowingPomodoroSheet) {
             NavigationStack {
                 PomodoroView(state: state)
                     .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { isShowingPomodoroSheet = false } } }
             }
         }
-        .sheet(isPresented: $isShowingTinyHabitSheet) { tinyHabitEditor }
+        .sheet(isPresented: $isShowingTinyHabitSheet) {
+            tinyHabitEditor
+        }
+        .sheet(item: $selectedDietPlanMeal) { meal in
+            plannedMealDetailSheet(meal)
+        }
     }
 
+    
     // MARK: - 内部组件和工具函数 (取消了 Extension，更稳固)
-
-    private func mealLinkRow(title: String, food: String, isDone: Bool) -> some View {
-        NavigationLink(destination: DietSOPListView(state: state)) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(.caption).foregroundColor(.secondary)
-                    Text(isDone ? "能量已补充 🧀" : food).font(.system(.body, design: .rounded).bold())
-                        .foregroundColor(isDone ? .lcTextSecondary : .lcText)
-                }
-                Spacer()
+    @ViewBuilder
+    private func mealLinkRow(
+        title: String,
+        fallback: String,
+        record: DietCheckinRecord?,
+        isDone: Bool
+    ) -> some View {
+        let plannedDetail = plannedMealDetail(for: title)
+        let plannedText = plannedDetail?.mealText
+        
+        let displayText = record == nil
+            ? (plannedText ?? fallback)
+            : "\(record?.emoji ?? "🧀") \(record?.sopName ?? "能量已补充")"
+        
+        let subtitleText: String = {
+            if isDone {
+                return "已完成，记到今天啦"
+            }
+            
+            if let plannedDetail {
+                return "\(plannedDetail.planName) · Day \(plannedDetail.dayNumber)"
+            }
+            
+            return "点进去选择一个 SOP"
+        }()
+        
+        if let plannedDetail {
+            Button {
+                selectedDietPlanMeal = plannedDetail
+            } label: {
+                mealRowContent(
+                    title: title,
+                    displayText: displayText,
+                    subtitleText: subtitleText,
+                    isDone: isDone
+                )
+            }
+            .buttonStyle(.plain)
+        } else {
+            NavigationLink(destination: BodyRecordView(state: state)) {
+                mealRowContent(
+                    title: title,
+                    displayText: displayText,
+                    subtitleText: subtitleText,
+                    isDone: isDone
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+    private func mealRowContent(
+        title: String,
+        displayText: String,
+        subtitleText: String,
+        isDone: Bool
+    ) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(isDone ? Color.lcGreen.opacity(0.16) : Color.lcSoftBlue.opacity(0.45))
+                    .frame(width: 38, height: 38)
+                
                 Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isDone ? .lcGreen : .lcSoftBlue).font(.title2)
+                    .foregroundColor(isDone ? .lcGreen : .lcAccentBlue.opacity(0.65))
+                    .font(.title3)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(.secondary)
+                
+                Text(displayText)
+                    .font(.system(.body, design: .rounded).bold())
+                    .foregroundColor(isDone ? .lcText : .lcTextSecondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                Text(subtitleText)
+                    .font(.caption2)
+                    .foregroundColor(.lcTextSecondary.opacity(0.75))
+            }
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.bold))
+                .foregroundColor(.lcTextSecondary.opacity(0.35))
+        }
+    }
+    private func plannedMealDetailSheet(_ meal: TodayDietPlanMealDetail) -> some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("\(meal.mealType)计划")
+                            .font(.title2.bold())
+                            .foregroundColor(.lcText)
+                        
+                        Text("\(meal.emoji) \(meal.planName) · Day \(meal.dayNumber)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.lcTextSecondary)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("写下你实际吃了什么")
+                            .font(.headline.weight(.bold))
+                                .foregroundColor(.lcText)
+                        
+                        Text("不用完全照计划，今天能被记录下来，就已经很棒了。")
+                            .font(.subheadline)
+                            .foregroundColor(.lcTextSecondary)
+                            .lineSpacing(3)
+                    }
+                    .padding(18)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 22)
+                            .fill(Color.lcYellow.opacity(0.16))
+                    )
+                    
+                    Button {
+                        customMealInput = ""
+                    } label: {
+                        HStack(spacing: 14) {
+                            
+                            ZStack {
+                                Circle()
+                                    .fill(Color.lcYellow.opacity(0.18))
+                                    .frame(width: 44, height: 44)
+                                
+                                Image(systemName: "square.and.pencil")
+                                    .foregroundColor(.lcYellow)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("自己输入")
+                                    .font(.headline.weight(.bold))
+                                    .foregroundColor(.lcText)
+                                
+                                Text("今天实际吃了什么")
+                                    .font(.caption)
+                                    .foregroundColor(.lcTextSecondary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color.white.opacity(0.92))
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    if customMealInput != "__HIDDEN__" {
+                        
+                        VStack(spacing: 14) {
+                            
+                            TextField(
+                                "比如：麻辣烫 + 无糖豆浆",
+                                text: $customMealInput,
+                                axis: .vertical
+                            )
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color.white)
+                            )
+                            
+                            Button {
+                                let input = customMealInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                                
+                                guard !input.isEmpty else { return }
+                                
+                                let completedMeal = TodayDietPlanMealDetail(
+                                    mealType: meal.mealType,
+                                    mealText: input,
+                                    planName: meal.planName,
+                                    emoji: meal.emoji,
+                                    dayNumber: meal.dayNumber
+                                )
+                                
+                                completePlannedMeal(completedMeal)
+                                
+                                customMealInput = "__HIDDEN__"
+                            } label: {
+                                Text("记到今天")
+                                    .font(.headline.weight(.bold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 18)
+                                            .fill(Color.lcGreen)
+                                    )
+                            }
+                        }
+                        .padding(.top, 10)
+                    }
+                   
+                    
+                    Button {
+                        customMealInput = meal.mealText
+                    } label: {
+                        Label("用原计划填入", systemImage: "wand.and.stars")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.lcAccentBlue)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 18)
+                                    .fill(Color.lcSoftBlue.opacity(0.32))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(22)
+            }
+            .background(Color.lcBackground.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("关闭") {
+                        customMealInput = ""
+                        selectedDietPlanMeal = nil
+                    }
+                }
             }
         }
-        .buttonStyle(.plain)
+    }
+    private func mealOptions(from text: String) -> [String] {
+        let separators = CharacterSet(charactersIn: "/／、，,")
+        
+        let options = text
+            .components(separatedBy: separators)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        
+        return options.isEmpty ? [text] : options
+    }
+    private var dietSummaryPill: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "sparkles")
+                .font(.caption.weight(.bold))
+                .foregroundColor(.lcCheeseYellow)
+            
+            Text(todayMealDoneCount >= 3 ? "今天的饮食闭环完成啦" : "已经完成 \(todayMealDoneCount) 餐，不用完美也在前进")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.lcTextSecondary)
+            
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.lcYellow.opacity(0.16))
+        )
     }
     
     private func getTodayChineseWeekday() -> String {

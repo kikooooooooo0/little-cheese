@@ -22,14 +22,13 @@
 			membershipExceptions = (
 				"AppModelsAndState 2.swift",
 				"AppState+LifeAreas.swift",
+				BodyRecordView.swift,
 				CalendarPhotoView.swift,
 				CollectionsView.swift,
 				ContentView.swift,
 				DietSOPView.swift,
-				ExerciseGuideDetailView.swift,
 				ExerciseGuideListView.swift,
 				ExerciseGuideModels.swift,
-				FitnessACSMView.swift,
 				FitnessBlindBoxView.swift,
 				FitnessCoachView.swift,
 				FitnessData.swift,
@@ -40,6 +39,7 @@
 				little_cheeseApp.swift,
 				MealPlanEditorView.swift,
 				Media.xcassets,
+				MonthlySummaryView.swift,
 				PhotoGalleryView.swift,
 				PomodoroView.swift,
 				TimeBlocksView.swift,
@@ -49,7 +49,6 @@
 				WeightRecordView.swift,
 				WorkoutActionDetailView.swift,
 				WorkoutExecutionView.swift,
-				WorkoutSessionView.swift,
 			);
 			target = F8619AA12EDA447B001B6750 /* LittleCheese iOS */;
 		};
